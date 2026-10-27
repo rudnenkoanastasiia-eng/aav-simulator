@@ -7,9 +7,10 @@ st.set_page_config(
     page_title="Навчальний симулятор rAAV", page_icon="🧬", layout="wide"
 )
 
-st.title("🧬 Інтерактивний симулятор біопроцесу rAAV (HEK293)")
+st.title("🧬 Професійний симулятор біопроцесу rAAV (HEK293)")
 st.caption(
-    "Модель upstream-виробництва рекомбінантного аденоасоційованого вірусу."
+    "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної"
+    " трансфекції."
 )
 
 # --- ТАБИ НАВІГАЦІЇ ---
@@ -21,24 +22,42 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # --- SIDEBAR: ВХІДНІ ПАРАМЕТРИ ---
-st.sidebar.header("⚙️ Параметри біопроцесу")
+st.sidebar.header("⚙️ 1. Параметри клітин та ДНК")
 
 cell_density = st.sidebar.slider(
-    "Живі клітини при трансфекції (Xₜ), 10⁶ cells/mL",
+    "Щільність клітин при трансфекції (Xₜ), 10⁶ cells/mL",
     0.5,
     8.0,
-    3.0,
+    2.0,
     0.1,
-    help="Оптимум: 2.5–3.5 x 10⁶ cells/mL",
+    help="Суспензійний оптимум HEK293: 1.5–2.5 x 10⁶ cells/mL",
 )
 
 dna_per_cell = st.sidebar.slider(
-    "Загальна ДНК на клітину (Dₜ), ум. од.",
+    "Концентрація ДНК, мкг / 10⁶ клітин",
     0.2,
     3.0,
-    1.0,
+    1.2,
     0.1,
-    help="Передозування ДНК призводить до появи порожніх капсидів",
+    help="Оптимум: 1.0–1.5 мкг на мільйон клітин",
+)
+
+pei_ratio = st.sidebar.slider(
+    "Співвідношення ДНК : PEI (масове w/w)",
+    1.0,
+    5.0,
+    3.0,
+    0.1,
+    help="Оптимум: від 1:2 до 1:4 (w/w)",
+)
+
+complex_time = st.sidebar.slider(
+    "Час формування комплексу DNA:PEI, хв",
+    5,
+    45,
+    18,
+    1,
+    help="Оптимум: 15–20 хвилин. Понад 25 хв викличує агломерацію",
 )
 
 st.sidebar.markdown("**Співвідношення плазмід (Сума = 1.0)**")
@@ -48,13 +67,24 @@ ratio_transgene = st.sidebar.slider(
 ratio_repcap = st.sidebar.slider("Rep/Cap плазміда", 0.1, 0.7, 0.33, 0.01)
 ratio_helper = st.sidebar.slider("Helper плазміда", 0.1, 0.7, 0.34, 0.01)
 
+st.sidebar.header("🌡️ 2. Умови культивування")
+
+temp_mode = st.sidebar.selectbox(
+    "Температурний режим після трансфекції",
+    options=[
+        "Постійна температура (37.0 °C)",
+        "Гіпотермічний шифт (33.0 °C після трансфекції)",
+    ],
+    help="Зниження до 33°C покращує згортання білків та збірку капсидів",
+)
+
 harvest_hpt = st.sidebar.slider(
     "Час збору (Harvest time), hpt",
     24,
     120,
     60,
     1,
-    help="Години після трансфекції (hours post-transfection)",
+    help="Оптимальний збір: 48–72 години після трансфекції",
 )
 
 serotype = st.sidebar.selectbox(
@@ -62,29 +92,54 @@ serotype = st.sidebar.selectbox(
 )
 
 lysis_mode = st.sidebar.selectbox(
-    "Стратегія лізису",
+    "Стратегія лізису клітин",
     options=[
         "Без лізису (збір супернатанту)",
-        "Частковий лізис",
+        "М'який / Частковий лізис",
         "Повний лізис",
     ],
 )
+
+st.sidebar.header("🏭 3. Масштаб та Очищення")
 
 scale_l = st.sidebar.select_slider(
     "Масштаб біореактора, L", options=[2, 50, 200, 500, 1000, 2000], value=200
 )
 
-# --- РОЗРАХУНКОВИЙ БЛОК ---
-base_titer = 3.0e10
-cell_effect = max(0.1, 1.0 - abs(cell_density - 3.0) / 8.0)
-dna_effect = max(
-    0.1, 1.0 + 0.25 * (dna_per_cell - 1.0) - 0.20 * max(0.0, dna_per_cell - 1.5)
+purification_mode = st.sidebar.selectbox(
+    "Метод Downstream-очищення",
+    options=[
+        "Ультрацентрифугування (Iodixanol/CsCl) [Вихід ~40%]",
+        "Хроматографія (Affinity + IEX) [Вихід ~65%, Purity >99%]",
+    ],
 )
 
+# --- РОЗРАХУНКОВИЙ БЛОК ---
+base_titer = 3.5e10
+
+# Ефект щільності клітин (оптимум 1.5 - 2.5 x 10^6)
+cell_effect = max(0.1, 1.0 - abs(cell_density - 2.0) / 6.0)
+
+# Ефект ДНК та PEI
+dna_effect = max(
+    0.1, 1.0 + 0.2 * (dna_per_cell - 1.2) - 0.25 * max(0.0, dna_per_cell - 1.5)
+)
+pei_effect = max(0.1, 1.0 - abs(pei_ratio - 3.0) * 0.2)
+
+# Ефект часу формування комплексу DNA:PEI
+if 15 <= complex_time <= 20:
+  complex_effect = 1.0
+elif complex_time < 15:
+  complex_effect = 0.7 + (complex_time / 15.0) * 0.3
+else:  # > 20 min (агломерація)
+  complex_effect = max(0.2, 1.0 - (complex_time - 20) * 0.035)
+
+# Дисбаланс плазмід
 plasmid_sum = ratio_transgene + ratio_repcap + ratio_helper
 imbalance = abs(plasmid_sum - 1.0) + abs(ratio_transgene - 0.33) * 0.5
 balance_effect = max(0.1, 1.0 - 1.5 * imbalance)
 
+# Час збору
 if harvest_hpt < 48:
   time_effect = 0.6 + (harvest_hpt - 24) / 24 * 0.4
 elif harvest_hpt <= 72:
@@ -92,6 +147,7 @@ elif harvest_hpt <= 72:
 else:
   time_effect = 1.0 - (harvest_hpt - 72) / 48 * 0.25
 
+# Внутрішньоклітинна фракція за серотипами
 intracellular_fraction = {
     "AAV2": 0.85,
     "AAV5": 0.60,
@@ -101,7 +157,7 @@ intracellular_fraction = {
 
 lysis_release = {
     "Без лізису (збір супернатанту)": 0.0,
-    "Частковий лізис": 0.55,
+    "М'який / Частковий лізис": 0.60,
     "Повний лізис": 0.95,
 }[lysis_mode]
 
@@ -113,25 +169,31 @@ scale_penalty = {2: 1.00, 50: 0.98, 200: 0.95, 500: 0.90, 1000: 0.85, 2000: 0.78
     scale_l
 ]
 
+# Кінцевий титр crude harvest (vg/mL)
 titer = (
     base_titer
     * cell_effect
     * dna_effect
+    * pei_effect
+    * complex_effect
     * balance_effect
     * time_effect
     * available_fraction
     * scale_penalty
 )
 
+# Вплив температурного шифту на % full та стабільність
+temp_bonus = 4.5 if temp_mode.startswith("Гіпотермічний") else 0.0
+
 base_full = 0.28
 full_fraction = (
     base_full
-    - 0.08 * max(0.0, dna_per_cell - 1.0)
+    - 0.07 * max(0.0, dna_per_cell - 1.2)
     - 0.15 * imbalance
     - 0.05 * max(0.0, harvest_hpt - 72) / 24.0
-    - 0.03 * max(0.0, cell_density - 5.0)
+    - 0.03 * max(0.0, cell_density - 4.0)
 )
-full_pct = max(5.0, min(45.0, full_fraction * 100))
+full_pct = max(5.0, min(50.0, (full_fraction * 100) + temp_bonus))
 
 impurity_load = (
     1.0
@@ -141,21 +203,29 @@ impurity_load = (
 )
 
 quality_score = (
-    0.50 * (full_pct / 30.0 * 100)
+    0.50 * (full_pct / 35.0 * 100)
     + 0.30 * max(0.0, (1.0 - (impurity_load - 1.0) / 3.0) * 100)
-    + 0.20 * min(100.0, (titer / 3.0e10) * 100)
+    + 0.20 * min(100.0, (titer / 3.5e10) * 100)
 )
 quality_score = max(0.0, min(100.0, quality_score))
 
+# Об'єми та очищення
 harvest_volume_ml = scale_l * 1000.0 * 0.9
-total_vg = titer * harvest_volume_ml
+crude_total_vg = titer * harvest_volume_ml
+
+downstream_recovery = (
+    0.40
+    if purification_mode.startswith("Ультрацентрифугування")
+    else 0.65
+)
+purified_total_vg = crude_total_vg * downstream_recovery
 
 # --- ТАБ 1: СИМУЛЯТОР ТА РОЗРАХУНКИ ---
 with tab1:
-  st.subheader("📊 Головні показники лоту")
+  st.subheader("📊 Головні показники лоту rAAV")
   c1, c2, c3, c4 = st.columns(4)
-  c1.metric("Геномний титр (Crude)", f"{titer:.2e} vg/mL")
-  c2.metric("Повний вихід", f"{total_vg:.2e} vg")
+  c1.metric("Титр (Crude Harvest)", f"{titer:.2e} vg/mL")
+  c2.metric("Чистий вихід (Purified Yield)", f"{purified_total_vg:.2e} vg")
   c3.metric("Частка повних капсидів", f"{full_pct:.1f} %")
   c4.metric("Індекс якості лоту", f"{quality_score:.0f} / 100")
 
@@ -165,34 +235,36 @@ with tab1:
   if abs(plasmid_sum - 1.0) > 0.02:
     st.error(f"❌ Сума часток плазмід має дорівнювати 1.00 (Зараз: {plasmid_sum:.2f})")
 
+  if complex_time > 22:
+    st.error(
+        f"⏱️ **Час формування комплексу DNA:PEI занадто великий ({complex_time}"
+        " хв)!** Комплекси починають агломерувати, знижуючи ефективність"
+        " трансфекції."
+    )
+
+  if pei_ratio < 1.8 or pei_ratio > 4.2:
+    st.warning(
+        f"⚠️ **Неоптимальне співвідношення DNA:PEI ({pei_ratio}:1):** "
+        "Нестача PEI погіршує доставку ДНК, а надлишок є цитотоксичним."
+    )
+
   if titer > 3.0e10 and full_pct < 20.0:
     st.warning(
         "⚡ **Високий титр, але низька якість!** Багато часток є порожніми"
         " (без генома). Геномний титр ≠ інфекційний титр."
     )
 
-  if dna_per_cell > 1.8:
-    st.warning(
-        "🧬 **Надлишок ДНК на клітину:** знижує частку повних капсидів та"
-        " підвищує цитотоксичність."
-    )
-
   if harvest_hpt > 84:
     st.warning(
-        "⏱️ **Пізній збір (>84 hpt):** деградація вірусу та масовий накопичення"
-        " ДНК/білків хазяїна (HCDNA/HCP)."
+        "⏱️ **Пізній збір (>84 hpt):** пришвидшує деградацію вірусу та масове"
+        " накопичення ДНК/білків хазяїна (HCDNA/HCP)."
     )
 
-  if lysis_mode == "Повний лізис":
-    st.warning(
-        "🧪 **Повний лізис:** збільшує титр, але критично забруднює лізат"
-        " клітинним сміттям (складніше downstream-очищення)."
-    )
-
-  if scale_l >= 1000:
-    st.info(
-        "🏭 **Промисловий масштаб (1000-2000 L):** фізико-хімічні обмеження"
-        " (mixing time, kLa, shear stress) знижують питому продуктивність."
+  if temp_mode.startswith("Гіпотермічний"):
+    st.success(
+        "❄️ **Гіпотермічний шифт (33°C) активовано:** Покращено згортання"
+        " білків, частку повних капсидів (+4.5%) та знижено метаболічний стрес"
+        " клітин."
     )
 
   # Динамічний графік кінетики
@@ -243,33 +315,27 @@ with tab2:
   col_vis, col_status = st.columns([1, 1])
 
   with col_vis:
-    # SVG схема біореактора
     agitator_speed = "Швидка" if scale_l >= 1000 else "Оптимальна"
     shear_warning = scale_l >= 1000
     reactor_color = "#e3f2fd" if not shear_warning else "#fff3e0"
+    target_temp = "33.0 °C" if temp_mode.startswith("Гіпотермічний") else "37.0 °C"
 
     svg_code = f"""
         <svg width="350" height="420" viewBox="0 0 350 420" xmlns="http://www.w3.org/2000/svg">
-          <!-- Bioreactor Tank Body -->
           <rect x="75" y="60" width="200" height="280" rx="30" ry="30" fill="{reactor_color}" stroke="#1565c0" stroke-width="6"/>
-          <!-- Fluid Level -->
           <rect x="80" y="120" width="190" height="215" rx="10" ry="10" fill="#90caf9" opacity="0.6"/>
-          <!-- Agitator Shaft -->
           <line x1="175" y1="30" x2="175" y2="300" stroke="#424242" stroke-width="8"/>
-          <!-- Impeller Blades -->
           <rect x="125" y="240" width="100" height="15" fill="#616161" rx="4"/>
           <rect x="135" y="280" width="80" height="12" fill="#616161" rx="4"/>
-          <!-- Motor -->
           <rect x="145" y="10" width="60" height="30" fill="#212121" rx="5"/>
-          <!-- Bubbles / Sparger -->
           <circle cx="120" cy="300" r="4" fill="#ffffff" opacity="0.8"/>
           <circle cx="150" cy="270" r="6" fill="#ffffff" opacity="0.8"/>
           <circle cx="190" cy="290" r="5" fill="#ffffff" opacity="0.8"/>
           <circle cx="220" cy="260" r="4" fill="#ffffff" opacity="0.8"/>
-          <!-- Labels -->
           <text x="175" y="100" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#0d47a1">Об'єм: {scale_l} L</text>
-          <text x="175" y="170" font-family="Arial" font-size="12" text-anchor="middle" fill="#1b5e20">HEK293: {cell_density}M/mL</text>
-          <text x="175" y="190" font-family="Arial" font-size="12" text-anchor="middle" fill="#b71c1c">Серотип: {serotype}</text>
+          <text x="175" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#1b5e20">HEK293: {cell_density}M/mL</text>
+          <text x="175" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#d84315">Темп: {target_temp}</text>
+          <text x="175" y="200" font-family="Arial" font-size="12" text-anchor="middle" fill="#b71c1c">Серотип: {serotype}</text>
         </svg>
         """
     st.components.v1.html(svg_code, height=430)
@@ -277,20 +343,14 @@ with tab2:
   with col_status:
     st.markdown("### 📋 Фізико-хімічний стан біосистеми")
     st.write(f"**Об'єм реактора:** `{scale_l} L`")
-    st.write(f"**Швидкість змішування:** `{agitator_speed}`")
-    st.write(
-        "**Температура:** `37.0 °C` | **pH:** `7.1` | **Розчинений кисень"
-        " (DO):** `40%`"
-    )
+    st.write(f"**Температурний режим:** `{target_temp}`")
+    st.write(f"**Комплекс DNA:PEI:** `{complex_time} хв` | **w/w:** `{pei_ratio}:1`")
+    st.write(f"**Очищення (Downstream):** `{purification_mode.split('[')[0]}`")
 
     if scale_l >= 1000:
       st.error(
           "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293"
-          " зазнають механічного пошкодження від лопатей мішалки."
-      )
-      st.warning(
-          "🟡 **Обмеження kLa (Масоперенос кисню):** Потрібне додаткове"
-          " збагачення чистого кисню."
+          " зазнають механічного пошкодження."
       )
     else:
       st.success(
@@ -308,41 +368,45 @@ with tab2:
 
 # --- ТАБ 3: КАРТКИ-ШПОРИ ---
 with tab3:
-  st.subheader("📚 Картки-шпори біоінженера: Як досягти максимальної якості")
+  st.subheader(
+      "📚 Протокольні картки-шпори біоінженерії (HEK293 Triple Transfection)"
+  )
 
   col_card1, col_card2 = st.columns(2)
 
   with col_card1:
     st.info("""
-        ### 🎯 1. Як збільшити частку повних капсидів (% Full)
+        ### 🎯 1. Оптимізація трансфекції та комплексу
         
-        * **Баланс плазмід:** Тримайте молярне співвідношення `Transgene : Rep/Cap : Helper` близьким до **1:1:1**. Дисбаланс призводить до синтезу "порожніх оболонок".
-        * **Контроль дози ДНК:** Не перевищуйте **1.0–1.2 мкг ДНК / 10⁶ клітин**. Надлишок ДНК викличує цитотоксичність та утворення неінфекційних часткових часток.
-        * **Оптимальне вікно збору:** Збирайте біомасу строго у проміжку **48–72 hpt**. Після 72 hpt частка повних капсидів починає швидко падати через деградацію.
+        * **Щільність суспензії HEK293:** Вводьте комплекс при **1.5–2.5 × 10⁶ cells/mL** із життєздатністю >95%.
+        * **Дозування ДНК:** Концентрація загальної ДНК **1.0–1.5 мкг / 10⁶ клітин** дає оптимальний результат.
+        * **Комплексоутворення DNA:PEI:** Співвідношення мас має бути **1:2 – 1:4 (w/w)**. Комплекс повинен формуватися строго **15–20 хвилин** перед додаванням. Понад 25 хвилин призводить до агломерації.
+        * **Баланс плазмід:** Дотримуйтесь еквімолярного співвідношення `Transgene : Rep/Cap : Helper` **1:1:1**.
         """)
 
     st.success("""
-        ### 🛡️ 3. Як оптимізувати трансфекцію HEK293
+        ### ❄️ 2. Температурний режим та Збір (Harvest)
         
-        * **Щільність при трансфекції (Xₜ):** Вводьте комплекс строго при **2.5–3.5 × 10⁶ cells/mL** у фазі експоненційного росту.
-        * **Час формування комплексу DNA:PEI:** Комплекс має формуватися **10–15 хвилин**. Подача понад 20 хвилин знижує ефективність трансфекції у 2–3 рази!
+        * **Гіпотермічний шифт (33°C):** Зниження температури з 37°C до 32–34°C після трансфекції покращує згортання білків, підвищує частку повних капсидів та зменшує метаболічний стрес.
+        * **Час збору:** Оптимальне вікно — **48–72 hpt**. Збирайте біомасу до того, як життєздатність впаде нижче 70%.
+        * **Серотипний розподіл:** AAV2 та AAV5 залишаються в клітинах (потрібен лізис), а AAV8 та AAV9 значною мірою вивільняються у середовище.
         """)
 
   with col_card2:
     st.warning("""
-        ### 🧪 2. Як мінімізувати домішки (HCDNA / HCP)
+        ### 🧪 3. Лізис та Очищення (Downstream)
         
-        * **Відмова від агресивного лізису:** Використовуйте **Частковий лізис** або збір супернатанту (якщо серотип це дозволяє, наприклад AAV5), щоб не руйнувати ядра клітин.
-        * **Ферментативна обробка (Benzonase):** Додавайте ендонуклеазу одразу після збору для розщеплення в'язкої хазяйської ДНК.
-        * **Зсувний контроль (Shear control):** Знижуйте оберти імпелера перед збором, щоб запобігти передчасному механічному некрозу клітин.
+        * **Протоколи лізису:** Цикли заморожування-розморожування підходять для Small-Scale. Для біореакторів використовують м'який детергентний лізис або механічне руйнування.
+        * **Очищення (Downstream):** 
+          * *Градієнтне центрифугування (CsCl/Iodixanol)* — для досліджень, вихід ~40–50%.
+          * *Афінна + Іонообмінна хроматографія (Affinity + IEX)* — для клінічного GMP-виробництва, чистота >99%, вихід ~65%.
         """)
 
     st.error("""
         ### 🏭 4. Чек-лист успішного Scale-Up (2000 L)
         
         * **P/V & kLa:** Масштабуйте процес за рівною питомою потужністю перемішування ($P/V$) та коефіцієнтом масопереносу кисню ($k_L a$).
-        * **Inline-трансфекція:** Застосовуйте статичні міксери для швидкої автоматичної подачі комплексу ДНК у великий біореактор.
-        * **Downstream готовий:** Будьте готові до втрат 30–50% продукту на стадії IEX-хроматографії при розділенні повних/порожніх капсидів.
+        * **Inline-додавання комплексу:** У 2000 L застосовуйте автоматичну швидку подачу комплексу, щоб не вийти за межі 20 хвилин комплексоутворення.
         """)
 
 # --- ТАБ 4: МАСШТАБУВАННЯ ---
@@ -353,26 +417,26 @@ with tab4:
       "Показник": [
           "Живі клітини при трансфекції",
           "Час збору",
-          "Прогнозований титр (vg/mL)",
+          "Титр Crude Harvest (vg/mL)",
           "Частка повних капсидів (% full)",
-          "Навантаження домішками",
+          "Downstream-вихід (Purified)",
           "Критичне лімітування",
       ],
       "Пілотний біореактор (200 L)": [
-          "3.0 x 10⁶ cells/mL",
+          "2.0 x 10⁶ cells/mL",
           f"{harvest_hpt} hpt",
           f"{titer:.2e}",
           f"{full_pct:.1f}%",
-          "Низьке / Базове",
+          f"{purified_total_vg:.2e} vg",
           "Швидке однорідне змішування",
       ],
       "Промисловий біореактор (2000 L)": [
-          "3.0 x 10⁶ cells/mL",
+          "2.0 x 10⁶ cells/mL",
           f"{harvest_hpt} hpt",
           f"{titer * (0.78 / scale_penalty):.2e}",
           f"{max(5.0, full_pct - 3.0):.1f}%",
-          "Підвищене",
-          "Час подачі комплексу, Shear stress, kLa",
+          f"{purified_total_vg * (0.78 / scale_penalty):.2e} vg",
+          "Тривалість додавання комплексу, Shear stress, kLa",
       ],
   }
   st.dataframe(pd.DataFrame(case_data), use_container_width=True)
@@ -381,5 +445,4 @@ with tab4:
       "💡 **Ключове інженерне резюме:** Головний критерій успішного scale-up —"
       " збереження питомого виходу повних функціональних векторів на 1 літр"
       " середовища та збереження CQA (Critical Quality Attributes), а не"
-      " максимальний титр будь-якою ціною."
-  )
+      " максимальний титр будь-якою ціною
