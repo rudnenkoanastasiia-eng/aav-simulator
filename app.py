@@ -9,8 +9,7 @@ st.set_page_config(
 
 st.title("🧬 Професійний симулятор біопроцесу rAAV (HEK293)")
 st.caption(
-    "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної"
-    " трансфекції."
+    "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної трансфекції."
 )
 
 # --- ТАБИ НАВІГАЦІЇ ---
@@ -57,7 +56,7 @@ complex_time = st.sidebar.slider(
     45,
     18,
     1,
-    help="Оптимум: 15–20 хвилин. Понад 25 хв викличує агломерацію",
+    help="Оптимум: 15–20 хвилин. Понад 25 хв викликає агломерацію",
 )
 
 st.sidebar.markdown("**Співвідношення плазмід (Сума = 1.0)**")
@@ -117,29 +116,23 @@ purification_mode = st.sidebar.selectbox(
 # --- РОЗРАХУНКОВИЙ БЛОК ---
 base_titer = 3.5e10
 
-# Ефект щільності клітин (оптимум 1.5 - 2.5 x 10^6)
 cell_effect = max(0.1, 1.0 - abs(cell_density - 2.0) / 6.0)
-
-# Ефект ДНК та PEI
 dna_effect = max(
     0.1, 1.0 + 0.2 * (dna_per_cell - 1.2) - 0.25 * max(0.0, dna_per_cell - 1.5)
 )
 pei_effect = max(0.1, 1.0 - abs(pei_ratio - 3.0) * 0.2)
 
-# Ефект часу формування комплексу DNA:PEI
 if 15 <= complex_time <= 20:
   complex_effect = 1.0
 elif complex_time < 15:
   complex_effect = 0.7 + (complex_time / 15.0) * 0.3
-else:  # > 20 min (агломерація)
+else:
   complex_effect = max(0.2, 1.0 - (complex_time - 20) * 0.035)
 
-# Дисбаланс плазмід
 plasmid_sum = ratio_transgene + ratio_repcap + ratio_helper
 imbalance = abs(plasmid_sum - 1.0) + abs(ratio_transgene - 0.33) * 0.5
 balance_effect = max(0.1, 1.0 - 1.5 * imbalance)
 
-# Час збору
 if harvest_hpt < 48:
   time_effect = 0.6 + (harvest_hpt - 24) / 24 * 0.4
 elif harvest_hpt <= 72:
@@ -147,7 +140,6 @@ elif harvest_hpt <= 72:
 else:
   time_effect = 1.0 - (harvest_hpt - 72) / 48 * 0.25
 
-# Внутрішньоклітинна фракція за серотипами
 intracellular_fraction = {
     "AAV2": 0.85,
     "AAV5": 0.60,
@@ -164,12 +156,10 @@ lysis_release = {
 available_fraction = (1.0 - intracellular_fraction) + (
     intracellular_fraction * lysis_release
 )
-
 scale_penalty = {2: 1.00, 50: 0.98, 200: 0.95, 500: 0.90, 1000: 0.85, 2000: 0.78}[
     scale_l
 ]
 
-# Кінцевий титр crude harvest (vg/mL)
 titer = (
     base_titer
     * cell_effect
@@ -182,9 +172,7 @@ titer = (
     * scale_penalty
 )
 
-# Вплив температурного шифту на % full та стабільність
 temp_bonus = 4.5 if temp_mode.startswith("Гіпотермічний") else 0.0
-
 base_full = 0.28
 full_fraction = (
     base_full
@@ -201,7 +189,6 @@ impurity_load = (
     + 0.5 * max(0.0, harvest_hpt - 72) / 24.0
     + 0.3 * max(0.0, cell_density - 4.0)
 )
-
 quality_score = (
     0.50 * (full_pct / 35.0 * 100)
     + 0.30 * max(0.0, (1.0 - (impurity_load - 1.0) / 3.0) * 100)
@@ -209,10 +196,8 @@ quality_score = (
 )
 quality_score = max(0.0, min(100.0, quality_score))
 
-# Об'єми та очищення
 harvest_volume_ml = scale_l * 1000.0 * 0.9
 crude_total_vg = titer * harvest_volume_ml
-
 downstream_recovery = (
     0.40
     if purification_mode.startswith("Ультрацентрифугування")
@@ -237,37 +222,29 @@ with tab1:
 
   if complex_time > 22:
     st.error(
-        f"⏱️ **Час формування комплексу DNA:PEI занадто великий ({complex_time}"
-        " хв)!** Комплекси починають агломерувати, знижуючи ефективність"
-        " трансфекції."
+        f"⏱️ **Час формування комплексу DNA:PEI занадто великий ({complex_time} хв)!** Комплекси починають агломерувати, знижуючи ефективність трансфекції."
     )
 
   if pei_ratio < 1.8 or pei_ratio > 4.2:
     st.warning(
-        f"⚠️ **Неоптимальне співвідношення DNA:PEI ({pei_ratio}:1):** "
-        "Нестача PEI погіршує доставку ДНК, а надлишок є цитотоксичним."
+        f"⚠️ **Неоптимальне співвідношення DNA:PEI ({pei_ratio}:1):** Нестача PEI погіршує доставку ДНК, а надлишок є цитотоксичним."
     )
 
   if titer > 3.0e10 and full_pct < 20.0:
     st.warning(
-        "⚡ **Високий титр, але низька якість!** Багато часток є порожніми"
-        " (без генома). Геномний титр ≠ інфекційний титр."
+        "⚡ **Високий титр, але низька якість!** Багато часток є порожніми (без генома). Геномний титр ≠ інфекційний титр."
     )
 
   if harvest_hpt > 84:
     st.warning(
-        "⏱️ **Пізній збір (>84 hpt):** пришвидшує деградацію вірусу та масове"
-        " накопичення ДНК/білків хазяїна (HCDNA/HCP)."
+        "⏱️ **Пізній збір (>84 hpt):** пришвидшує деградацію вірусу та масове накопичення ДНК/білків хазяйки (HCDNA/HCP)."
     )
 
   if temp_mode.startswith("Гіпотермічний"):
     st.success(
-        "❄️ **Гіпотермічний шифт (33°C) активовано:** Покращено згортання"
-        " білків, частку повних капсидів (+4.5%) та знижено метаболічний стрес"
-        " клітин."
+        "❄️ **Гіпотермічний шифт (33°C) активовано:** Покращено згортання білків, частку повних капсидів (+4.5%) та знижено метаболічний стрес клітин."
     )
 
-  # Динамічний графік кінетики
   st.subheader("📈 Динаміка біопроцесу (0 ➔ Harvest)")
   t_steps = np.linspace(0, harvest_hpt, 100)
   xv_t = cell_density * np.exp(0.015 * t_steps) * (1 - t_steps / 150)
@@ -349,21 +326,18 @@ with tab2:
 
     if scale_l >= 1000:
       st.error(
-          "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293"
-          " зазнають механічного пошкодження."
+          "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293 зазнають механічного пошкодження."
       )
     else:
       st.success(
-          "🟢 **Оптимальний гомеостаз:** Змішування та киснепостачання"
-          " рівномірні по всьому об'єму."
+          "🟢 **Оптимальний гомеостаз:** Змішування та киснепостачання рівномірні по всьому об'єму."
       )
 
     st.markdown("---")
     st.markdown("**Розподіл продукту (Intracellular vs Extracellular):**")
     st.progress(intracellular_fraction)
     st.caption(
-        f"Внутрішньоклітинний AAV: {intracellular_fraction*100:.0f}% | У"
-        f" супернатанті: {(1-intracellular_fraction)*100:.0f}%"
+        f"Внутрішньоклітинний AAV: {intracellular_fraction*100:.0f}% | У супернатанті: {(1-intracellular_fraction)*100:.0f}%"
     )
 
 # --- ТАБ 3: КАРТКИ-ШПОРИ ---
@@ -442,7 +416,5 @@ with tab4:
   st.dataframe(pd.DataFrame(case_data), use_container_width=True)
 
   st.success(
-      "💡 **Ключове інженерне резюме:** Головний критерій успішного scale-up —"
-      " збереження питомого виходу повних функціональних векторів на 1 літр"
-      " середовища та збереження CQA (Critical Quality Attributes), а не"
-      " максимальний титр будь-якою ціною
+      "💡 **Ключове інженерне резюме:** Головний критерій успішного scale-up — збереження питомого виходу повних функціональних векторів на 1 літр середовища та збереження CQA (Critical Quality Attributes), а не максимальний титр будь-якою ціною."
+  )
