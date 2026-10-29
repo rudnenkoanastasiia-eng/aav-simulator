@@ -106,6 +106,25 @@ scale_l = st.sidebar.select_slider(
     "Масштаб біореактора, L", options=[2, 50, 200, 500, 1000, 2000], value=200
 )
 
+# --- Інженерні опції для великих масштабів (1000-2000 L) ---
+if scale_l >= 1000:
+  st.sidebar.markdown("**⚙️ GMP-інженерія великих об'ємів:**")
+  inline_mixing = st.sidebar.checkbox(
+      "⚡ Автоматичне Inline-змішування PEI:ДНК",
+      value=False,
+      help="Усуває деградацію комплексу через тривалу подачу у великий об'єм",
+  )
+  shear_control = st.sidebar.checkbox(
+      "🛡️ Оптимізація імпелера (P/V & kLa)",
+      value=False,
+      help=(
+          "Зменшує зсувне напруження (shear stress) та зберігає клітини цілими"
+      ),
+  )
+else:
+  inline_mixing = True  # На малих масштабах затримки подачі немає
+  shear_control = True  # На малих масштабах немає високого зсувного напруження
+
 purification_mode = st.sidebar.selectbox(
     "Метод Downstream-очищення",
     options=[
@@ -158,9 +177,29 @@ lysis_release = {
 available_fraction = (1.0 - intracellular_fraction) + (
     intracellular_fraction * lysis_release
 )
+
 scale_penalty = {2: 1.00, 50: 0.98, 200: 0.95, 500: 0.90, 1000: 0.85, 2000: 0.78}[
     scale_l
 ]
+
+# Коригування штрафів масштабування за наявністю інженерного контролю
+if scale_l >= 1000:
+  if not inline_mixing:
+    scale_penalty *= 0.85  # Штраф -15% через тривалий залив суміші
+  if not shear_control:
+    scale_penalty *= 0.90  # Штраф -10% через руйнування клітин
+
+impurity_load = (
+    1.0
+    + 2.0 * lysis_release
+    + 0.5 * max(0.0, harvest_hpt - 72) / 24.0
+    + 0.3 * max(0.0, cell_density - 4.0)
+)
+
+if scale_l >= 1000 and not shear_control:
+  impurity_load *= (
+      1.3  # Додатковий приріст домішок HCDNA через зсувне напруження
+  )
 
 titer = (
     base_titer
@@ -184,13 +223,6 @@ full_fraction = (
     - 0.03 * max(0.0, cell_density - 4.0)
 )
 full_pct = max(5.0, min(50.0, (full_fraction * 100) + temp_bonus))
-
-impurity_load = (
-    1.0
-    + 2.0 * lysis_release
-    + 0.5 * max(0.0, harvest_hpt - 72) / 24.0
-    + 0.3 * max(0.0, cell_density - 4.0)
-)
 
 if purification_mode.startswith("Без очищення"):
   downstream_recovery = 1.00
@@ -233,9 +265,14 @@ if abs(plasmid_sum - 1.0) > 0.02 or abs(ratio_transgene - 0.33) > 0.05:
   )
 
 if complex_time < 15 or complex_time > 20:
+  reason = (
+      "Час занадто малий для формування комплексу."
+      if complex_time < 15
+      else "Понад 22 хв викликає агломерацію та втрату трансфекційності."
+  )
   recommendations.append(
       f"⏱️ **Скоригуйте час комплексу DNA:PEI:** Оптимум — **15–20 хвилин**"
-      f" (зараз {complex_time} хв). { 'Час занадто малий для формування комплексу.' if complex_time < 15 else 'Понад 22 хв викликає агломерацію та втрату трансфекційності.' }"
+      f" (зараз {complex_time} хв). {reason}"
   )
 
 if dna_per_cell > 1.3:
@@ -260,11 +297,18 @@ if purification_mode.startswith("Без очищення"):
   )
 
 if scale_l >= 1000:
-  recommendations.append(
-      "🏭 **Для масштабу 1000–2000 L:** Використовуйте автоматичне inline-змішування"
-      " PEI:ДНК та оптимізуйте kLa/PV для захисту клітин від зсувного"
-      " напруження (shear stress)."
-  )
+  if not inline_mixing:
+    recommendations.append(
+        "⚡ **Активуйте Inline-змішування (для 1000–2000 L):** Звичайний залив"
+        " комплексу у великий об'єм триває >20 хв, що викликає агломерацію та"
+        " втрату титру на -15%."
+    )
+  if not shear_control:
+    recommendations.append(
+        "🛡️ **Увімкніть Оптимізацію імпелера (P/V & kLa):** На великому масштабі"
+        " висока швидкість перемішування спричиняє зсувне напруження (shear"
+        " stress), руйнує клітини та підвищує рівень домішок HCDNA на +30%."
+    )
 
 # --- ТАБ 1: СИМУЛЯТОР ТА РОЗРАХУНКИ ---
 with tab1:
@@ -371,7 +415,7 @@ with tab2:
 
   target_temp = "33.0 °C" if temp_mode.startswith("Гіпотермічний") else "37.0 °C"
 
-  # 1. SEED TRAIN (Шейкерна колба + Wave-реактор)
+  # 1. SEED TRAIN
   with eq1:
     st.markdown("##### 1. Посівний етап\n**(Seed Train / Wave)**")
     svg_seed = """
@@ -381,12 +425,10 @@ with tab2:
           <text x="120" y="52" font-family="Arial" font-size="11" text-anchor="middle" fill="#202124">WCB HEK293 (Інокулят)</text>
           <text x="120" y="70" font-family="Arial" font-size="11" text-anchor="middle" fill="#3c4043">X₀ = 0.3×10⁶/mL</text>
 
-          <!-- Erlenmeyer Flask -->
           <polygon points="60,130 35,190 95,190 70,130" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
           <rect x="61" y="112" width="18" height="18" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
           <path d="M38,183 Q65,173 92,183 L95,190 L35,190 Z" fill="#4285f4" opacity="0.7"/>
 
-          <!-- Wave Bioreactor Bag -->
           <rect x="120" y="140" width="85" height="50" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
           <rect x="125" y="152" width="75" height="32" rx="6" fill="#4285f4" opacity="0.6"/>
           <line x1="110" y1="198" x2="215" y2="198" stroke="#5f6368" stroke-width="5"/>
@@ -396,25 +438,22 @@ with tab2:
         """
     st.components.v1.html(svg_seed, height=300)
 
-  # 2. MAIN BIOREACTOR (Single-Use Stirred Tank)
+  # 2. MAIN BIOREACTOR
   with eq2:
     st.markdown(f"##### 2. Біореактор SUB\n**({scale_l} L Production)**")
-    shear_warning = scale_l >= 1000
+    shear_warning = scale_l >= 1000 and not shear_control
     reactor_fill = "#e3f2fd" if not shear_warning else "#fff3e0"
     svg_sub = f"""
         <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
           <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#137333" stroke-width="2.5"/>
           <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#137333">SUB {scale_l} L</text>
 
-          <!-- Vessel -->
           <rect x="50" y="80" width="140" height="170" rx="18" fill="{reactor_fill}" stroke="#137333" stroke-width="3"/>
-          <!-- Agitator Shaft & Motor -->
           <rect x="100" y="48" width="40" height="18" fill="#202124" rx="4"/>
           <line x1="120" y1="66" x2="120" y2="225" stroke="#3c4043" stroke-width="4"/>
           <rect x="85" y="190" width="70" height="12" fill="#5f6368" rx="3"/>
           <rect x="92" y="212" width="56" height="10" fill="#5f6368" rx="3"/>
 
-          <!-- Readable Badge Overlay -->
           <rect x="65" y="100" width="110" height="68" rx="6" fill="#ffffff" opacity="0.9"/>
           <text x="120" y="118" font-family="Arial" font-size="11" text-anchor="middle" font-weight="bold" fill="#0d47a1">Xₜ: {cell_density}M/mL</text>
           <text x="120" y="138" font-family="Arial" font-size="11" text-anchor="middle" font-weight="bold" fill="#b71c1c">T: {target_temp}</text>
@@ -423,7 +462,7 @@ with tab2:
         """
     st.components.v1.html(svg_sub, height=300)
 
-  # 3. CLARIFICATION & LYSIS (Глибинний фільтр)
+  # 3. CLARIFICATION & LYSIS
   with eq3:
     st.markdown("##### 3. Освітлення\n**(Depth Filter Capsule)**")
     svg_filter = f"""
@@ -431,13 +470,11 @@ with tab2:
           <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#b06000" stroke-width="2.5"/>
           <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#b06000">Depth Filter 0.22µm</text>
 
-          <!-- Filter Housing -->
           <rect x="65" y="75" width="110" height="160" rx="10" fill="#fef7e0" stroke="#b06000" stroke-width="3"/>
           <line x1="70" y1="115" x2="170" y2="115" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
           <line x1="70" y1="150" x2="170" y2="150" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
           <line x1="70" y1="185" x2="170" y2="185" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
 
-          <!-- Pipes -->
           <line x1="120" y1="50" x2="120" y2="75" stroke="#b06000" stroke-width="5"/>
           <line x1="120" y1="235" x2="120" y2="260" stroke="#b06000" stroke-width="5"/>
 
@@ -447,7 +484,7 @@ with tab2:
         """
     st.components.v1.html(svg_filter, height=300)
 
-  # 4. CHROMATOGRAPHY SKID (Афінна та Аніонообмінна колонка)
+  # 4. CHROMATOGRAPHY SKID
   with eq4:
     st.markdown("##### 4. Хроматографія\n**(Affinity & AEX Column)**")
     svg_chrom = f"""
@@ -455,7 +492,6 @@ with tab2:
           <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#c5221f" stroke-width="2.5"/>
           <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#c5221f">AEX / Affinity Skid</text>
 
-          <!-- Column Body -->
           <rect x="80" y="70" width="80" height="170" rx="6" fill="#ffffff" stroke="#c5221f" stroke-width="3"/>
           <rect x="84" y="100" width="72" height="120" fill="#fce8e6"/>
 
@@ -467,7 +503,6 @@ with tab2:
           <rect x="72" y="58" width="96" height="12" fill="#5f6368" rx="3"/>
           <rect x="72" y="240" width="96" height="12" fill="#5f6368" rx="3"/>
 
-          <!-- Readable Text Box -->
           <rect x="90" y="125" width="60" height="42" rx="4" fill="#ffffff" opacity="0.9"/>
           <text x="120" y="142" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#202124">Вихід: {downstream_recovery*100:.0f}%</text>
           <text x="120" y="158" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#137333">% Full: {full_pct:.1f}%</text>
@@ -475,7 +510,7 @@ with tab2:
         """
     st.components.v1.html(svg_chrom, height=300)
 
-  # 5. FILL/FINISH & QC (Ізолятор, Розлив, -80°C)
+  # 5. FILL/FINISH & QC
   with eq5:
     st.markdown("##### 5. Розлив & QC\n**(Isolator & -80°C Freezer)**")
     svg_fill = f"""
@@ -483,12 +518,10 @@ with tab2:
           <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#8e24aa" stroke-width="2.5"/>
           <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#8e24aa">Class A Isolator</text>
 
-          <!-- Isolator Box -->
           <rect x="35" y="55" width="170" height="105" rx="8" fill="#f3e8fd" stroke="#8e24aa" stroke-width="2"/>
           <text x="120" y="75" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#202124">ddPCR / qPCR</text>
           <text x="120" y="93" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#8e24aa">Score: {quality_score:.0f}/100</text>
 
-          <!-- Glass Vials -->
           <rect x="55" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
           <rect x="88" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
           <rect x="121" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
@@ -499,7 +532,6 @@ with tab2:
           <rect x="124" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
           <rect x="157" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
 
-          <!-- Freezer -->
           <rect x="45" y="180" width="150" height="70" rx="8" fill="#4a148c"/>
           <text x="120" y="220" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#ffffff">Сховище -80°C</text>
         </svg>
@@ -642,7 +674,7 @@ with tab4:
   st.dataframe(pd.DataFrame(case_data), use_container_width=True)
 
   st.markdown("---")
-  st.subheader("💡Інженерне резюме та рекомендації")
+  st.subheader("💡 Динамічне інженерне резюме та рекомендації")
 
   if recommendations:
     st.warning(
