@@ -252,4 +252,250 @@ with tab1:
 
   if titer > 3.0e10 and full_pct < 20.0:
     st.warning(
-        "⚡ **Високий титр, але низька якість!** Ба
+        "⚡ **Високий титр, але низька якість!** Багато часток є порожніми (без"
+        " генома). Геномний титр ≠ інфекційний титр."
+    )
+
+  if harvest_hpt > 84:
+    st.warning(
+        "⏱️ **Пізній збір (>84 hpt):** пришвидшує деградацію вірусу та масове"
+        " накопичення ДНК/білків хазяйки (HCDNA/HCP)."
+    )
+
+  if temp_mode.startswith("Гіпотермічний"):
+    st.success(
+        "❄️ **Гіпотермічний шифт (33°C) активовано:** Покращено згортання білків,"
+        " частку повних капсидів (+4.5%) та знижено метаболічний стрес клітин."
+    )
+
+  st.subheader("📈 Динаміка біопроцесу (0 ➔ Harvest)")
+  t_steps = np.linspace(0, harvest_hpt, 100)
+  xv_t = cell_density * np.exp(0.015 * t_steps) * (1 - t_steps / 150)
+  vg_t = (
+      (titer / (1 + np.exp(-0.1 * (t_steps - 36))))
+      if harvest_hpt > 24
+      else np.zeros(100)
+  )
+
+  fig = go.Figure()
+  fig.add_trace(
+      go.Scatter(
+          x=t_steps,
+          y=xv_t,
+          name="Щільність клітин (10⁶/mL)",
+          line=dict(color="blue", width=3),
+      )
+  )
+  fig.add_trace(
+      go.Scatter(
+          x=t_steps,
+          y=vg_t,
+          name="Титр AAV (vg/mL)",
+          yaxis="y2",
+          line=dict(color="green", width=3, dash="dash"),
+      )
+  )
+
+  fig.update_layout(
+      title="Кінетика росту клітин та накопичення rAAV у біореакторі",
+      xaxis=dict(title="Час після трансфекції (hpt), годин"),
+      yaxis=dict(title="Живі клітини (10⁶ cells/mL)", side="left"),
+      yaxis2=dict(
+          title="Титр rAAV (vg/mL)", overlaying="y", side="right", type="log"
+      ),
+      legend=dict(orientation="h", y=1.15),
+      height=400,
+  )
+  st.plotly_chart(fig, use_container_width=True)
+
+# --- ТАБ 2: ВІЗУАЛІЗАЦІЯ БІОРЕАКТОРА ТА GMP-ЛІНІЇ ---
+with tab2:
+  st.subheader("🖼️ Інтерактивна схема Stirred-Tank Біореактора")
+
+  col_vis, col_status = st.columns([1, 1])
+
+  with col_vis:
+    shear_warning = scale_l >= 1000
+    reactor_color = "#e3f2fd" if not shear_warning else "#fff3e0"
+    target_temp = "33.0 °C" if temp_mode.startswith("Гіпотермічний") else "37.0 °C"
+
+    svg_code = f"""
+        <svg width="350" height="420" viewBox="0 0 350 420" xmlns="http://www.w3.org/2000/svg">
+          <rect x="75" y="60" width="200" height="280" rx="30" ry="30" fill="{reactor_color}" stroke="#1565c0" stroke-width="6"/>
+          <rect x="80" y="120" width="190" height="215" rx="10" ry="10" fill="#90caf9" opacity="0.6"/>
+          <line x1="175" y1="30" x2="175" y2="300" stroke="#424242" stroke-width="8"/>
+          <rect x="125" y="240" width="100" height="15" fill="#616161" rx="4"/>
+          <rect x="135" y="280" width="80" height="12" fill="#616161" rx="4"/>
+          <rect x="145" y="10" width="60" height="30" fill="#212121" rx="5"/>
+          <circle cx="120" cy="300" r="4" fill="#ffffff" opacity="0.8"/>
+          <circle cx="150" cy="270" r="6" fill="#ffffff" opacity="0.8"/>
+          <circle cx="190" cy="290" r="5" fill="#ffffff" opacity="0.8"/>
+          <circle cx="220" cy="260" r="4" fill="#ffffff" opacity="0.8"/>
+          <text x="175" y="100" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#0d47a1">Об'єм: {scale_l} L</text>
+          <text x="175" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#1b5e20">HEK293: {cell_density}M/mL</text>
+          <text x="175" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#d84315">Темп: {target_temp}</text>
+          <text x="175" y="200" font-family="Arial" font-size="12" text-anchor="middle" fill="#b71c1c">Серотип: {serotype}</text>
+        </svg>
+        """
+    st.components.v1.html(svg_code, height=430)
+
+  with col_status:
+    st.markdown("### 📋 Фізико-хімічний стан біосистеми")
+    st.write(f"**Об'єм реактора:** {scale_l} L")
+    st.write(f"**Температурний режим:** {target_temp}")
+    st.write(f"**Комплекс DNA:PEI:** {complex_time} хв | **w/w:** {pei_ratio}:1")
+    st.write(f"**Очищення (Downstream):** {clean_purif_name}")
+
+    if scale_l >= 1000:
+      st.error(
+          "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293 зазнають"
+          " механічного пошкодження."
+      )
+    else:
+      st.success(
+          "🟢 **Оптимальний гомеостаз:** Змішування та киснепостачання рівномірні"
+          " по всьому об'єму."
+      )
+
+    st.markdown("---")
+    st.markdown("**Розподіл продукту (Intracellular vs Extracellular):**")
+    st.progress(intracellular_fraction)
+    st.caption(
+        f"Внутрішньоклітинний AAV: {intracellular_fraction*100:.0f}% | У"
+        f" супернатанті: {(1-intracellular_fraction)*100:.0f}%"
+    )
+
+  st.markdown("---")
+  st.subheader(
+      "🏗️ Промислова виробнича лінія rAAV (Process Flow Diagram / GMP Line)"
+  )
+  st.caption(
+      "Послідовний технологічний маршрут від кріоампули до готового"
+      " фасованого препарату."
+  )
+
+  p1, p2, p3, p4, p5 = st.columns(5)
+
+  with p1:
+    st.info("""
+        **1. Seed Train**
+        * **Вхід:** WCB HEK293
+        * Кріосховище (-150°C)
+        * Колби 125 mL ➔ 2 L
+        * Wave-біореактор 10 L
+        """)
+
+  with p2:
+    st.success(f"""
+        **2. Upstream SUB**
+        * **Реактор:** Single-Use {scale_l} L
+        * **Трансфекція:** DNA:PEI ({complex_time} хв)
+        * **Режим:** {target_temp}
+        """)
+
+  with p3:
+    st.warning(f"""
+        **3. Освітлення & Лізис**
+        * **Стратегія:** {lysis_mode.split('(')[0]}
+        * Глибинні фільтри (Depth Filter 0.22 µm)
+        * Видалення клітинного сміття
+        """)
+
+  with p4:
+    st.warning(f"""
+        **4. Downstream**
+        * **Метод:** {clean_purif_name}
+        * Концентрування (TFF UF/DF)
+        * Розділення Full/Empty
+        """)
+
+  with p5:
+    st.error("""
+        **5. Fill / Finish & QC**
+        * Стерильний розлив (Class A)
+        * Аналіз ddPCR ($vg/mL$)
+        * Зберігання (-80°C)
+        """)
+
+# --- ТАБ 3: КАРТКИ-ШПОРИ ---
+with tab3:
+  st.subheader(
+      "📚 Протокольні картки-шпори біоінженерії (HEK293 Triple Transfection)"
+  )
+
+  col_card1, col_card2 = st.columns(2)
+
+  with col_card1:
+    st.info("""
+        ### 🎯 1. Оптимізація трансфекції та комплексу
+        
+        * **Щільність суспензії HEK293:** Вводьте комплекс при **1.5–2.5 × 10⁶ cells/mL** із життєздатністю >95%.
+        * **Дозування ДНК:** Концентрація загальної ДНК **1.0–1.5 мкг / 10⁶ клітин** дає оптимальний результат.
+        * **Комплексоутворення DNA:PEI:** Співвідношення мас має бути **1:2 – 1:4 (w/w)**. Комплекс повинен формуватися строго **15–20 хвилин** перед додаванням. Понад 25 хвилин призводить до агломерації.
+        * **Баланс плазмід:** Дотримуйтесь еквімолярного співвідношення `Transgene : Rep/Cap : Helper` **1:1:1**.
+        """)
+
+    st.success("""
+        ### ❄️ 2. Температурний режим та Збір (Harvest)
+        
+        * **Гіпотермічний шифт (33°C):** Зниження температури з 37°C до 32–34°C після трансфекції покращує згортання білків, підвищує частку повних капсидів та зменшує метаболічний стрес.
+        * **Час збору:** Оптимальне вікно — **48–72 hpt**. Збирайте біомасу до того, як життєздатність впаде нижче 70%.
+        * **Серотипний розподіл:** AAV2 та AAV5 залишаються в клітинах (потрібен лізис), а AAV8 та AAV9 значною мірою вивільняються у середовище.
+        """)
+
+  with col_card2:
+    st.warning("""
+        ### 🧪 3. Лізис та Очищення (Downstream)
+        
+        * **Протоколи лізису:** Цикли заморожування-розморожування підходять для Small-Scale. Для біореакторів використовують м'який детергентний лізис або механічне руйнування.
+        * **Очищення (Downstream):** 
+          * *Без очищення* — високий вихід за геномами, але непридатний через HCDNA/HCP.
+          * *Ультрацентрифугування (CsCl/Iodixanol)* — вихід ~40%, чистота ~85%.
+          * *Афінна + Іонообмінна хроматографія (Affinity + IEX)* — для клінічного GMP-виробництва, чистота >99%, вихід ~65%.
+        """)
+
+    st.error("""
+        ### 🏭 4. Чек-лист успішного Scale-Up (2000 L)
+        
+        * **P/V & kLa:** Масштабуйте процес за рівною питомою потужністю перемішування ($P/V$) та коефіцієнтом масопереносу кисню ($k_L a$).
+        * **Inline-додавання комплексу:** У 2000 L застосовуйте автоматичну швидку подачу комплексу, щоб не вийти за межі 20 хвилин комплексоутворення.
+        """)
+
+# --- ТАБ 4: МАСШТАБУВАННЯ ---
+with tab4:
+  st.subheader("⚖️ Порівняльний аналіз масштабування: 200 L ➔ 2000 L")
+
+  case_data = {
+      "Показник": [
+          "Живі клітини при трансфекції",
+          "Час збору",
+          "Титр Crude Harvest (vg/mL)",
+          "Частка повних капсидів (% full)",
+          "Downstream-вихід (Purified)",
+          "Критичне лімітування",
+      ],
+      "Пілотний біореактор (200 L)": [
+          "2.0 x 10⁶ cells/mL",
+          f"{harvest_hpt} hpt",
+          f"{titer:.2e}",
+          f"{full_pct:.1f}%",
+          f"{purified_total_vg:.2e} vg",
+          "Швидке однорідне змішування",
+      ],
+      "Промисловий біореактор (2000 L)": [
+          "2.0 x 10⁶ cells/mL",
+          f"{harvest_hpt} hpt",
+          f"{titer * (0.78 / scale_penalty):.2e}",
+          f"{max(5.0, full_pct - 3.0):.1f}%",
+          f"{purified_total_vg * (0.78 / scale_penalty):.2e} vg",
+          "Тривалість додавання комплексу, Shear stress, kLa",
+      ],
+  }
+  st.dataframe(pd.DataFrame(case_data), use_container_width=True)
+
+  st.success(
+      "💡 **Ключове інженерне резюме:** Головний критерій успішного scale-up —"
+      " збереження питомого виходу повних функціональних векторів на 1 літр"
+      " середовища та збереження CQA (Critical Quality Attributes), а не"
+      " досягнення максимального титру будь-якою ціною."
+  )
