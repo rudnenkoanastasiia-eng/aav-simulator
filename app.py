@@ -16,7 +16,7 @@ st.caption(
 # --- ТАБИ НАВІГАЦІЇ ---
 tab1, tab2, tab3, tab4 = st.tabs([
     "🎮 Симулятор та розрахунки",
-    "🖼️ Візуалізація біореактора та GMP-лінії",
+    "🖼️ Обладнання та GMP-лінія",
     "📚 Картки-шпори (Покращення якості)",
     "⚖️ Масштабування (200L ➔ 2000L)",
 ])
@@ -308,167 +308,146 @@ with tab1:
   )
   st.plotly_chart(fig, use_container_width=True)
 
-# --- ТАБ 2: ВІЗУАЛІЗАЦІЯ БІОРЕАКТОРА ТА GMP-ЛІНІЇ ---
+# --- ТАБ 2: ВІЗУАЛІЗАЦІЯ БІОРЕАКТОРА ТА ОБЛАДНАННЯ GMP-ЛІНІЇ ---
 with tab2:
-  st.subheader("🖼️ Інтерактивна схема Stirred-Tank Біореактора")
+  st.subheader("🏭 Графічне обладнання технологічного маршруту (Equipment PFD)")
+  st.caption(
+      "Схема ключових апаратів GMP-лінії з прямим відображенням заданих"
+      " параметрів:"
+  )
 
-  col_vis, col_status = st.columns([1, 1])
+  eq1, eq2, eq3, eq4, eq5 = st.columns(5)
 
-  with col_vis:
-    shear_warning = scale_l >= 1000
-    reactor_color = "#e3f2fd" if not shear_warning else "#fff3e0"
-    target_temp = "33.0 °C" if temp_mode.startswith("Гіпотермічний") else "37.0 °C"
+  target_temp = "33.0 °C" if temp_mode.startswith("Гіпотермічний") else "37.0 °C"
 
-    svg_code = f"""
-        <svg width="350" height="420" viewBox="0 0 350 420" xmlns="http://www.w3.org/2000/svg">
-          <rect x="75" y="60" width="200" height="280" rx="30" ry="30" fill="{reactor_color}" stroke="#1565c0" stroke-width="6"/>
-          <rect x="80" y="120" width="190" height="215" rx="10" ry="10" fill="#90caf9" opacity="0.6"/>
-          <line x1="175" y1="30" x2="175" y2="300" stroke="#424242" stroke-width="8"/>
-          <rect x="125" y="240" width="100" height="15" fill="#616161" rx="4"/>
-          <rect x="135" y="280" width="80" height="12" fill="#616161" rx="4"/>
-          <rect x="145" y="10" width="60" height="30" fill="#212121" rx="5"/>
-          <circle cx="120" cy="300" r="4" fill="#ffffff" opacity="0.8"/>
-          <circle cx="150" cy="270" r="6" fill="#ffffff" opacity="0.8"/>
-          <circle cx="190" cy="290" r="5" fill="#ffffff" opacity="0.8"/>
-          <circle cx="220" cy="260" r="4" fill="#ffffff" opacity="0.8"/>
-          <text x="175" y="100" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#0d47a1">Об'єм: {scale_l} L</text>
-          <text x="175" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#1b5e20">HEK293: {cell_density}M/mL</text>
-          <text x="175" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#d84315">Темп: {target_temp}</text>
-          <text x="175" y="200" font-family="Arial" font-size="12" text-anchor="middle" fill="#b71c1c">Серотип: {serotype}</text>
+  # 1. SEED TRAIN (Шейкерна колба + Wave-реактор)
+  with eq1:
+    st.markdown(
+        "##### 1. Насіннєвий етап\n**(Seed Train / Wave)**"
+    )
+    svg_seed = """
+        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#1a73e8" stroke-width="2"/>
+          <!-- Erlenmeyer Flask -->
+          <polygon points="50,110 30,160 80,160 60,110" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+          <rect x="52" y="95" width="16" height="15" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+          <path d="M32,155 Q55,145 78,155 L80,160 L30,160 Z" fill="#4285f4" opacity="0.7"/>
+          <!-- Wave Bioreactor Bag -->
+          <rect x="100" y="120" width="70" height="40" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+          <rect x="105" y="130" width="60" height="25" rx="4" fill="#4285f4" opacity="0.6"/>
+          <line x1="90" y1="165" x2="180" y2="165" stroke="#5f6368" stroke-width="4"/>
+          <!-- Labels -->
+          <text x="100" y="35" font-family="Arial" font-size="11" font-weight="bold" fill="#1a73e8">Колби & Wave 10L</text>
+          <text x="100" y="55" font-family="Arial" font-size="10" text-anchor="middle" fill="#202124">WCB HEK293</text>
+          <text x="100" y="75" font-family="Arial" font-size="10" text-anchor="middle" fill="#3c4043">X₀ = 0.3×10⁶/mL</text>
+          <text x="100" y="195" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#137333">Життєздатність >98%</text>
         </svg>
         """
-    st.components.v1.html(svg_code, height=430)
+    st.components.v1.html(svg_seed, height=240)
 
-  with col_status:
-    st.markdown("### 📋 Фізико-хімічний стан біосистеми")
-    st.write(f"**Об'єм реактора:** {scale_l} L")
-    st.write(f"**Температурний режим:** {target_temp}")
-    st.write(f"**Комплекс DNA:PEI:** {complex_time} хв | **w/w:** {pei_ratio}:1")
-    st.write(f"**Очищення (Downstream):** {clean_purif_name}")
+  # 2. MAIN BIOREACTOR (Single-Use Stirred Tank)
+  with eq2:
+    st.markdown(f"##### 2. Біореактор SUB\n**({scale_l} L Production)**")
+    shear_warning = scale_l >= 1000
+    reactor_fill = "#e3f2fd" if not shear_warning else "#fff3e0"
+    svg_sub = f"""
+        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#137333" stroke-width="2"/>
+          <!-- Vessel -->
+          <rect x="45" y="70" width="110" height="130" rx="15" fill="{reactor_fill}" stroke="#137333" stroke-width="3"/>
+          <!-- Agitator Shaft & Blades -->
+          <line x1="100" y1="50" x2="100" y2="180" stroke="#3c4043" stroke-width="4"/>
+          <rect x="75" y="150" width="50" height="10" fill="#5f6368" rx="2"/>
+          <rect x="80" y="170" width="40" height="8" fill="#5f6368" rx="2"/>
+          <rect x="85" y="40" width="30" height="15" fill="#202124" rx="3"/>
+          <!-- Dynamic Overlay Text -->
+          <text x="100" y="30" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#137333">SUB {scale_l} L</text>
+          <text x="100" y="100" font-family="Arial" font-size="10" text-anchor="middle" font-weight="bold" fill="#0d47a1">Xₜ: {cell_density}M/mL</text>
+          <text x="100" y="118" font-family="Arial" font-size="10" text-anchor="middle" fill="#b71c1c">T: {target_temp}</text>
+          <text x="100" y="134" font-family="Arial" font-size="9" text-anchor="middle" fill="#3c4043">PEI: {complex_time} хв</text>
+        </svg>
+        """
+    st.components.v1.html(svg_sub, height=240)
 
-    if scale_l >= 1000:
-      st.error(
-          "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293 зазнають"
-          " механічного пошкодження."
-      )
-    else:
-      st.success(
-          "🟢 **Оптимальний гомеостаз:** Змішування та киснепостачання рівномірні"
-          " по всьому об'єму."
-      )
+  # 3. CLARIFICATION & LYSIS (Глибинний фільтр / Диспергатор)
+  with eq3:
+    st.markdown("##### 3. Освітлення\n**(Depth Filter Capsule)**")
+    svg_filter = f"""
+        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#b06000" stroke-width="2"/>
+          <!-- Depth Filter Housing -->
+          <rect x="60" y="65" width="80" height="125" rx="8" fill="#fef7e0" stroke="#b06000" stroke-width="3"/>
+          <!-- Filter Membranes -->
+          <line x1="65" y1="95" x2="135" y2="95" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
+          <line x1="65" y1="120" x2="135" y2="120" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
+          <line x1="65" y1="145" x2="135" y2="145" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
+          <!-- Pipe In / Out -->
+          <line x1="100" y1="45" x2="100" y2="65" stroke="#b06000" stroke-width="4"/>
+          <line x1="100" y1="190" x2="100" y2="210" stroke="#b06000" stroke-width="4"/>
+          <!-- Text -->
+          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#b06000">Depth Filter 0.22µm</text>
+          <text x="100" y="110" font-family="Arial" font-size="9" font-weight="bold" text-anchor="middle" fill="#202124">{lysis_mode.split('(')[0]}</text>
+          <text x="100" y="170" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#b71c1c">HCDNA: {impurity_load:.1f}x</text>
+        </svg>
+        """
+    st.components.v1.html(svg_filter, height=240)
 
-    st.markdown("---")
-    st.markdown("**Розподіл продукту (Intracellular vs Extracellular):**")
-    st.progress(intracellular_fraction)
-    st.caption(
-        f"Внутрішньоклітинний AAV: {intracellular_fraction*100:.0f}% | У"
-        f" супернатанті: {(1-intracellular_fraction)*100:.0f}%"
-    )
+  # 4. CHROMATOGRAPHY SKID (Афінна та Аніонообмінна колонка)
+  with eq4:
+    st.markdown("##### 4. Хроматографія\n**(Affinity & AEX Column)**")
+    svg_chrom = f"""
+        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#c5221f" stroke-width="2"/>
+          <!-- Column Body -->
+          <rect x="70" y="60" width="60" height="135" rx="5" fill="#ffffff" stroke="#c5221f" stroke-width="3"/>
+          <!-- Packed Resin Bed -->
+          <rect x="73" y="85" width="54" height="95" fill="#fce8e6"/>
+          <!-- Resin particles dots -->
+          <circle cx="85" cy="100" r="3" fill="#c5221f" opacity="0.5"/>
+          <circle cx="105" cy="115" r="4" fill="#c5221f" opacity="0.5"/>
+          <circle cx="115" cy="135" r="3" fill="#c5221f" opacity="0.5"/>
+          <circle cx="90" cy="150" r="4" fill="#c5221f" opacity="0.5"/>
+          <!-- Adapter caps -->
+          <rect x="65" y="50" width="70" height="10" fill="#5f6368" rx="2"/>
+          <rect x="65" y="195" width="70" height="10" fill="#5f6368" rx="2"/>
+          <!-- Text -->
+          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#c5221f">AEX / Affinity Skid</text>
+          <text x="100" y="110" font-family="Arial" font-size="9" font-weight="bold" text-anchor="middle" fill="#202124">Вихід: {downstream_recovery*100:.0f}%</text>
+          <text x="100" y="130" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#137333">% Full: {full_pct:.1f}%</text>
+        </svg>
+        """
+    st.components.v1.html(svg_chrom, height=240)
+
+  # 5. FILL/FINISH & QC (Ізолятор, Розлив у флакони, -80°C)
+  with eq5:
+    st.markdown("##### 5. Розлив & QC\n**(Isolator & -80°C Freezer)**")
+    svg_fill = f"""
+        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#8e24aa" stroke-width="2"/>
+          <!-- Isolator Hood -->
+          <rect x="35" y="55" width="130" height="80" rx="6" fill="#f3e8fd" stroke="#8e24aa" stroke-width="2"/>
+          <!-- Glass Vials -->
+          <rect x="50" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="75" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="100" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="125" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <!-- Vial Liquid -->
+          <rect x="52" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
+          <rect x="77" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
+          <rect x="102" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
+          <rect x="127" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
+          <!-- -80C Storage Box -->
+          <rect x="45" y="150" width="110" height="50" rx="5" fill="#4a148c"/>
+          <text x="100" y="180" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">Сховище -80°C</text>
+          <!-- Text -->
+          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#8e24aa">Class A Isolator</text>
+          <text x="100" y="75" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#202124">ddPCR / qPCR</text>
+          <text x="100" y="90" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#8e24aa">Score: {quality_score:.0f}/100</text>
+        </svg>
+        """
+    st.components.v1.html(svg_fill, height=240)
 
   st.markdown("---")
-  st.subheader(
-      "🏬 Технологічна схема виробничої GMP-лінії (Process Flow Diagram)"
-  )
-  st.caption(
-      "Візуальний маршрут процесу із реальними розрахованими параметрами"
-      " вашого лоту:"
-  )
-
-  # Створення стилізованих інфографічних карток
-  g1, g2, g3, g4, g5 = st.columns(5)
-
-  with g1:
-    st.markdown(
-        f"""
-        <div style="background-color:#f0f4f9; padding:12px; border-radius:10px; border-left:5px solid #1a73e8; min-height:280px;">
-            <h4 style="margin-top:0; color:#1a73e8;">1. SEED TRAIN</h4>
-            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Cryo-vials, Erlenmeyer, Wave 10L</p>
-            <hr style="margin:5px 0;">
-            <p style="font-size:11px; margin:2px 0;">🧬 <b>Клітини:</b> WCB HEK293</p>
-            <p style="font-size:11px; margin:2px 0;">🧫 <b>Початкова щільність:</b> 0.3×10⁶/mL</p>
-            <p style="font-size:11px; margin:2px 0;">🌱 <b>Життєздатність:</b> >98%</p>
-            <div style="background:#e8f0fe; padding:4px; border-radius:5px; font-size:11px; margin-top:15px; text-anchor:middle;">
-                <b>Статус:</b> Готовність біомаси
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  with g2:
-    st.markdown(
-        f"""
-        <div style="background-color:#e6f4ea; padding:12px; border-radius:10px; border-left:5px solid #137333; min-height:280px;">
-            <h4 style="margin-top:0; color:#137333;">2. UPSTREAM SUB</h4>
-            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> SUB {scale_l} L + DNA Skid</p>
-            <hr style="margin:5px 0;">
-            <p style="font-size:11px; margin:2px 0;">🧫 <b>Xₜ трансфекції:</b> {cell_density}M/mL</p>
-            <p style="font-size:11px; margin:2px 0;">⏱️ <b>Комплекс DNA:PEI:</b> {complex_time} хв</p>
-            <p style="font-size:11px; margin:2px 0;">🌡️ <b>Температура:</b> {target_temp}</p>
-            <p style="font-size:11px; margin:2px 0;">⏳ <b>Культивування:</b> {harvest_hpt} hpt</p>
-            <div style="background:#ceebd6; padding:4px; border-radius:5px; font-size:11px; margin-top:10px;">
-                <b>Титр Crude:</b> {titer:.2e} vg/mL
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  with g3:
-    st.markdown(
-        f"""
-        <div style="background-color:#fef7e0; padding:12px; border-radius:10px; border-left:5px solid #b06000; min-height:280px;">
-            <h4 style="margin-top:0; color:#b06000;">3. CLARIFICATION</h4>
-            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Depth Filter (0.22µm)</p>
-            <hr style="margin:5px 0;">
-            <p style="font-size:11px; margin:2px 0;">💥 <b>Лізис:</b> {lysis_mode.split('(')[0]}</p>
-            <p style="font-size:11px; margin:2px 0;">🦠 <b>Серотип:</b> {serotype}</p>
-            <p style="font-size:11px; margin:2px 0;">📉 <b>Забруднення HCDNA:</b> {impurity_load:.1f}x</p>
-            <div style="background:#feefc3; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
-                <b>Вихід лізату:</b> {crude_total_vg:.2e} vg
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  with g4:
-    st.markdown(
-        f"""
-        <div style="background-color:#fce8e6; padding:12px; border-radius:10px; border-left:5px solid #c5221f; min-height:280px;">
-            <h4 style="margin-top:0; color:#c5221f;">4. PURIFICATION</h4>
-            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Affinity + AEX Skid</p>
-            <hr style="margin:5px 0;">
-            <p style="font-size:11px; margin:2px 0;">🧪 <b>Метод:</b> {clean_purif_name}</p>
-            <p style="font-size:11px; margin:2px 0;">🎯 <b>Відсоток виходу:</b> {downstream_recovery*100:.0f}%</p>
-            <p style="font-size:11px; margin:2px 0;">💎 <b>Частка Full:</b> {full_pct:.1f}%</p>
-            <div style="background:#fad2cf; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
-                <b>Чистий вихід:</b> {purified_total_vg:.2e} vg
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  with g5:
-    st.markdown(
-        f"""
-        <div style="background-color:#f3e8fd; padding:12px; border-radius:10px; border-left:5px solid #8e24aa; min-height:280px;">
-            <h4 style="margin-top:0; color:#8e24aa;">5. FILL/FINISH & QC</h4>
-            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Isolator, ddPCR, -80°C</p>
-            <hr style="margin:5px 0;">
-            <p style="font-size:11px; margin:2px 0;">🔬 <b>Аналітика:</b> qPCR/ddPCR, SEC-HPLC</p>
-            <p style="font-size:11px; margin:2px 0;">💉 <b>Фасування:</b> Стерильний розлив</p>
-            <p style="font-size:11px; margin:2px 0;">🏆 <b>Quality Score:</b> {quality_score:.0f}/100</p>
-            <div style="background:#e1bee7; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
-                <b>Готовий лот:</b> GMP Специфікація
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  st.markdown("<br>", unsafe_allow_html=True)
   st.subheader("⚖️ Порівняльна характеристика масштабів виробництва")
 
   m1, m2, m3 = st.columns(3)
