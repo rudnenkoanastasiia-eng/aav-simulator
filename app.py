@@ -13,7 +13,7 @@ st.caption(
     " трансфекції."
 )
 
-# --- ТАБИ НАВІГАЦІЇ (4 ТАБИ) ---
+# --- ТАБИ НАВІГАЦІЇ ---
 tab1, tab2, tab3, tab4 = st.tabs([
     "🎮 Симулятор та розрахунки",
     "🖼️ Візуалізація біореактора та GMP-лінії",
@@ -367,55 +367,165 @@ with tab2:
 
   st.markdown("---")
   st.subheader(
-      "🏗️ Промислова виробнича лінія rAAV (Process Flow Diagram / GMP Line)"
+      "🏬 Технологічна схема виробничої GMP-лінії (Process Flow Diagram)"
   )
   st.caption(
-      "Послідовний технологічний маршрут від кріоампули до готового"
-      " фасованого препарату."
+      "Візуальний маршрут процесу із реальними розрахованими параметрами"
+      " вашого лоту:"
   )
 
-  p1, p2, p3, p4, p5 = st.columns(5)
+  # Створення стилізованих інфографічних карток
+  g1, g2, g3, g4, g5 = st.columns(5)
 
-  with p1:
-    st.info("""
-        **1. Seed Train**
-        * **Вхід:** WCB HEK293
-        * Кріосховище (-150°C)
-        * Колби 125 mL ➔ 2 L
-        * Wave-біореактор 10 L
-        """)
+  with g1:
+    st.markdown(
+        f"""
+        <div style="background-color:#f0f4f9; padding:12px; border-radius:10px; border-left:5px solid #1a73e8; min-height:280px;">
+            <h4 style="margin-top:0; color:#1a73e8;">1. SEED TRAIN</h4>
+            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Cryo-vials, Erlenmeyer, Wave 10L</p>
+            <hr style="margin:5px 0;">
+            <p style="font-size:11px; margin:2px 0;">🧬 <b>Клітини:</b> WCB HEK293</p>
+            <p style="font-size:11px; margin:2px 0;">🧫 <b>Початкова щільність:</b> 0.3×10⁶/mL</p>
+            <p style="font-size:11px; margin:2px 0;">🌱 <b>Життєздатність:</b> >98%</p>
+            <div style="background:#e8f0fe; padding:4px; border-radius:5px; font-size:11px; margin-top:15px; text-anchor:middle;">
+                <b>Статус:</b> Готовність біомаси
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  with p2:
-    st.success(f"""
-        **2. Upstream SUB**
-        * **Реактор:** Single-Use {scale_l} L
-        * **Трансфекція:** DNA:PEI ({complex_time} хв)
-        * **Режим:** {target_temp}
-        """)
+  with g2:
+    st.markdown(
+        f"""
+        <div style="background-color:#e6f4ea; padding:12px; border-radius:10px; border-left:5px solid #137333; min-height:280px;">
+            <h4 style="margin-top:0; color:#137333;">2. UPSTREAM SUB</h4>
+            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> SUB {scale_l} L + DNA Skid</p>
+            <hr style="margin:5px 0;">
+            <p style="font-size:11px; margin:2px 0;">🧫 <b>Xₜ трансфекції:</b> {cell_density}M/mL</p>
+            <p style="font-size:11px; margin:2px 0;">⏱️ <b>Комплекс DNA:PEI:</b> {complex_time} хв</p>
+            <p style="font-size:11px; margin:2px 0;">🌡️ <b>Температура:</b> {target_temp}</p>
+            <p style="font-size:11px; margin:2px 0;">⏳ <b>Культивування:</b> {harvest_hpt} hpt</p>
+            <div style="background:#ceebd6; padding:4px; border-radius:5px; font-size:11px; margin-top:10px;">
+                <b>Титр Crude:</b> {titer:.2e} vg/mL
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  with p3:
-    st.warning(f"""
-        **3. Освітлення & Лізис**
-        * **Стратегія:** {lysis_mode.split('(')[0]}
-        * Глибинні фільтри (Depth Filter 0.22 µm)
-        * Видалення клітинного сміття
-        """)
+  with g3:
+    st.markdown(
+        f"""
+        <div style="background-color:#fef7e0; padding:12px; border-radius:10px; border-left:5px solid #b06000; min-height:280px;">
+            <h4 style="margin-top:0; color:#b06000;">3. CLARIFICATION</h4>
+            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Depth Filter (0.22µm)</p>
+            <hr style="margin:5px 0;">
+            <p style="font-size:11px; margin:2px 0;">💥 <b>Лізис:</b> {lysis_mode.split('(')[0]}</p>
+            <p style="font-size:11px; margin:2px 0;">🦠 <b>Серотип:</b> {serotype}</p>
+            <p style="font-size:11px; margin:2px 0;">📉 <b>Забруднення HCDNA:</b> {impurity_load:.1f}x</p>
+            <div style="background:#feefc3; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
+                <b>Вихід лізату:</b> {crude_total_vg:.2e} vg
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  with p4:
-    st.warning(f"""
-        **4. Downstream**
-        * **Метод:** {clean_purif_name}
-        * Концентрування (TFF UF/DF)
-        * Розділення Full/Empty
-        """)
+  with g4:
+    st.markdown(
+        f"""
+        <div style="background-color:#fce8e6; padding:12px; border-radius:10px; border-left:5px solid #c5221f; min-height:280px;">
+            <h4 style="margin-top:0; color:#c5221f;">4. PURIFICATION</h4>
+            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Affinity + AEX Skid</p>
+            <hr style="margin:5px 0;">
+            <p style="font-size:11px; margin:2px 0;">🧪 <b>Метод:</b> {clean_purif_name}</p>
+            <p style="font-size:11px; margin:2px 0;">🎯 <b>Відсоток виходу:</b> {downstream_recovery*100:.0f}%</p>
+            <p style="font-size:11px; margin:2px 0;">💎 <b>Частка Full:</b> {full_pct:.1f}%</p>
+            <div style="background:#fad2cf; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
+                <b>Чистий вихід:</b> {purified_total_vg:.2e} vg
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  with p5:
-    st.error("""
-        **5. Fill / Finish & QC**
-        * Стерильний розлив (Class A)
-        * Аналіз ddPCR ($vg/mL$)
-        * Зберігання (-80°C)
-        """)
+  with g5:
+    st.markdown(
+        f"""
+        <div style="background-color:#f3e8fd; padding:12px; border-radius:10px; border-left:5px solid #8e24aa; min-height:280px;">
+            <h4 style="margin-top:0; color:#8e24aa;">5. FILL/FINISH & QC</h4>
+            <p style="font-size:12px; margin-bottom:5px;"><b>Обладнання:</b> Isolator, ddPCR, -80°C</p>
+            <hr style="margin:5px 0;">
+            <p style="font-size:11px; margin:2px 0;">🔬 <b>Аналітика:</b> qPCR/ddPCR, SEC-HPLC</p>
+            <p style="font-size:11px; margin:2px 0;">💉 <b>Фасування:</b> Стерильний розлив</p>
+            <p style="font-size:11px; margin:2px 0;">🏆 <b>Quality Score:</b> {quality_score:.0f}/100</p>
+            <div style="background:#e1bee7; padding:4px; border-radius:5px; font-size:11px; margin-top:25px;">
+                <b>Готовий лот:</b> GMP Специфікація
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("<br>", unsafe_allow_html=True)
+  st.subheader("⚖️ Порівняльна характеристика масштабів виробництва")
+
+  m1, m2, m3 = st.columns(3)
+
+  with m1:
+    st.markdown(
+        """
+        <div style="border:1px solid #dadce0; border-radius:8px; padding:15px; background:#ffffff;">
+            <h3 style="text-align:center; color:#5f6368; margin-top:0;">1. LAB R&D SETUP</h3>
+            <p style="text-align:center; color:#70757a; font-size:13px;">Масштаб 2 L – 10 L</p>
+            <hr>
+            <ul>
+                <li><b>Обладнання:</b> Шейкерні колби, настільні реактори</li>
+                <li><b>Гнучкість:</b> Дуже висока</li>
+                <li><b>Основна мета:</b> Пошук параметрів трансфекції та тестування плазмід</li>
+                <li><b>Вихід:</b> 10¹² – 10¹³ vg/лот</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  with m2:
+    st.markdown(
+        f"""
+        <div style="border:2px solid #1a73e8; border-radius:8px; padding:15px; background:#f8f9fa;">
+            <h3 style="text-align:center; color:#1a73e8; margin-top:0;">2. PILOT PRODUCTION</h3>
+            <p style="text-align:center; color:#1a73e8; font-size:13px;">Масштаб 50 L – 200 L (Поточний: {scale_l} L)</p>
+            <hr>
+            <ul>
+                <li><b>Обладнання:</b> Single-Use Bioreactor (SUB)</li>
+                <li><b>Гнучкість:</b> Поміркована (дослідницькі лоти)</li>
+                <li><b>Основна мета:</b> Доклінічні випробування (Toxicology studies)</li>
+                <li><b>Вихід:</b> {purified_total_vg:.2e} vg/лот</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  with m3:
+    st.markdown(
+        """
+        <div style="border:1px solid #dadce0; border-radius:8px; padding:15px; background:#ffffff;">
+            <h3 style="text-align:center; color:#137333; margin-top:0;">3. COMMERCIAL GMP</h3>
+            <p style="text-align:center; color:#70757a; font-size:13px;">Масштаб 1000 L – 2000 L</p>
+            <hr>
+            <ul>
+                <li><b>Обладнання:</b> Промислові SUB-ферментери + Автоматизовані хроматографи</li>
+                <li><b>Гнучкість:</b> Низька (Суворі GMP стандарти)</li>
+                <li><b>Основна мета:</b> Клінічні фази та комерційний випуск</li>
+                <li><b>Вихід:</b> >10¹⁶ vg/лот</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # --- ТАБ 3: КАРТКИ-ШПОРИ ---
 with tab3:
