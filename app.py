@@ -642,7 +642,7 @@ with tab4:
   st.dataframe(pd.DataFrame(case_data), use_container_width=True)
 
   st.markdown("---")
-  st.subheader("💡 Динамічне інженерне резюме та рекомендації")
+  st.subheader("💡Інженерне резюме та рекомендації")
 
   if recommendations:
     st.warning(
