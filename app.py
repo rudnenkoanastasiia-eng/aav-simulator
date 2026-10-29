@@ -322,28 +322,28 @@ with tab2:
 
   # 1. SEED TRAIN (Шейкерна колба + Wave-реактор)
   with eq1:
-    st.markdown(
-        "##### 1. Насіннєвий етап\n**(Seed Train / Wave)**"
-    )
+    st.markdown("##### 1. Посівний етап\n**(Seed Train / Wave)**")
     svg_seed = """
-        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#1a73e8" stroke-width="2"/>
+        <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#1a73e8" stroke-width="2.5"/>
+          <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a73e8">Колби & Wave 10L</text>
+          <text x="120" y="52" font-family="Arial" font-size="11" text-anchor="middle" fill="#202124">WCB HEK293 (Інокулят)</text>
+          <text x="120" y="70" font-family="Arial" font-size="11" text-anchor="middle" fill="#3c4043">X₀ = 0.3×10⁶/mL</text>
+
           <!-- Erlenmeyer Flask -->
-          <polygon points="50,110 30,160 80,160 60,110" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
-          <rect x="52" y="95" width="16" height="15" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
-          <path d="M32,155 Q55,145 78,155 L80,160 L30,160 Z" fill="#4285f4" opacity="0.7"/>
+          <polygon points="60,130 35,190 95,190 70,130" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+          <rect x="61" y="112" width="18" height="18" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+          <path d="M38,183 Q65,173 92,183 L95,190 L35,190 Z" fill="#4285f4" opacity="0.7"/>
+
           <!-- Wave Bioreactor Bag -->
-          <rect x="100" y="120" width="70" height="40" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
-          <rect x="105" y="130" width="60" height="25" rx="4" fill="#4285f4" opacity="0.6"/>
-          <line x1="90" y1="165" x2="180" y2="165" stroke="#5f6368" stroke-width="4"/>
-          <!-- Labels -->
-          <text x="100" y="35" font-family="Arial" font-size="11" font-weight="bold" fill="#1a73e8">Колби & Wave 10L</text>
-          <text x="100" y="55" font-family="Arial" font-size="10" text-anchor="middle" fill="#202124">WCB HEK293</text>
-          <text x="100" y="75" font-family="Arial" font-size="10" text-anchor="middle" fill="#3c4043">X₀ = 0.3×10⁶/mL</text>
-          <text x="100" y="195" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#137333">Життєздатність >98%</text>
+          <rect x="120" y="140" width="85" height="50" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="3"/>
+          <rect x="125" y="152" width="75" height="32" rx="6" fill="#4285f4" opacity="0.6"/>
+          <line x1="110" y1="198" x2="215" y2="198" stroke="#5f6368" stroke-width="5"/>
+
+          <text x="120" y="250" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle" fill="#137333">Життєздатність >98%</text>
         </svg>
         """
-    st.components.v1.html(svg_seed, height=240)
+    st.components.v1.html(svg_seed, height=300)
 
   # 2. MAIN BIOREACTOR (Single-Use Stirred Tank)
   with eq2:
@@ -351,101 +351,109 @@ with tab2:
     shear_warning = scale_l >= 1000
     reactor_fill = "#e3f2fd" if not shear_warning else "#fff3e0"
     svg_sub = f"""
-        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#137333" stroke-width="2"/>
+        <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#137333" stroke-width="2.5"/>
+          <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#137333">SUB {scale_l} L</text>
+
           <!-- Vessel -->
-          <rect x="45" y="70" width="110" height="130" rx="15" fill="{reactor_fill}" stroke="#137333" stroke-width="3"/>
-          <!-- Agitator Shaft & Blades -->
-          <line x1="100" y1="50" x2="100" y2="180" stroke="#3c4043" stroke-width="4"/>
-          <rect x="75" y="150" width="50" height="10" fill="#5f6368" rx="2"/>
-          <rect x="80" y="170" width="40" height="8" fill="#5f6368" rx="2"/>
-          <rect x="85" y="40" width="30" height="15" fill="#202124" rx="3"/>
-          <!-- Dynamic Overlay Text -->
-          <text x="100" y="30" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#137333">SUB {scale_l} L</text>
-          <text x="100" y="100" font-family="Arial" font-size="10" text-anchor="middle" font-weight="bold" fill="#0d47a1">Xₜ: {cell_density}M/mL</text>
-          <text x="100" y="118" font-family="Arial" font-size="10" text-anchor="middle" fill="#b71c1c">T: {target_temp}</text>
-          <text x="100" y="134" font-family="Arial" font-size="9" text-anchor="middle" fill="#3c4043">PEI: {complex_time} хв</text>
+          <rect x="50" y="80" width="140" height="170" rx="18" fill="{reactor_fill}" stroke="#137333" stroke-width="3"/>
+          <!-- Agitator Shaft & Motor -->
+          <rect x="100" y="48" width="40" height="18" fill="#202124" rx="4"/>
+          <line x1="120" y1="66" x2="120" y2="225" stroke="#3c4043" stroke-width="4"/>
+          <rect x="85" y="190" width="70" height="12" fill="#5f6368" rx="3"/>
+          <rect x="92" y="212" width="56" height="10" fill="#5f6368" rx="3"/>
+
+          <!-- Readable Badge Overlay -->
+          <rect x="65" y="100" width="110" height="68" rx="6" fill="#ffffff" opacity="0.9"/>
+          <text x="120" y="118" font-family="Arial" font-size="11" text-anchor="middle" font-weight="bold" fill="#0d47a1">Xₜ: {cell_density}M/mL</text>
+          <text x="120" y="138" font-family="Arial" font-size="11" text-anchor="middle" font-weight="bold" fill="#b71c1c">T: {target_temp}</text>
+          <text x="120" y="156" font-family="Arial" font-size="10" text-anchor="middle" fill="#3c4043">PEI: {complex_time} хв</text>
         </svg>
         """
-    st.components.v1.html(svg_sub, height=240)
+    st.components.v1.html(svg_sub, height=300)
 
-  # 3. CLARIFICATION & LYSIS (Глибинний фільтр / Диспергатор)
+  # 3. CLARIFICATION & LYSIS (Глибинний фільтр)
   with eq3:
     st.markdown("##### 3. Освітлення\n**(Depth Filter Capsule)**")
     svg_filter = f"""
-        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#b06000" stroke-width="2"/>
-          <!-- Depth Filter Housing -->
-          <rect x="60" y="65" width="80" height="125" rx="8" fill="#fef7e0" stroke="#b06000" stroke-width="3"/>
-          <!-- Filter Membranes -->
-          <line x1="65" y1="95" x2="135" y2="95" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
-          <line x1="65" y1="120" x2="135" y2="120" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
-          <line x1="65" y1="145" x2="135" y2="145" stroke="#b06000" stroke-width="3" stroke-dasharray="4,2"/>
-          <!-- Pipe In / Out -->
-          <line x1="100" y1="45" x2="100" y2="65" stroke="#b06000" stroke-width="4"/>
-          <line x1="100" y1="190" x2="100" y2="210" stroke="#b06000" stroke-width="4"/>
-          <!-- Text -->
-          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#b06000">Depth Filter 0.22µm</text>
-          <text x="100" y="110" font-family="Arial" font-size="9" font-weight="bold" text-anchor="middle" fill="#202124">{lysis_mode.split('(')[0]}</text>
-          <text x="100" y="170" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#b71c1c">HCDNA: {impurity_load:.1f}x</text>
+        <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#b06000" stroke-width="2.5"/>
+          <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#b06000">Depth Filter 0.22µm</text>
+
+          <!-- Filter Housing -->
+          <rect x="65" y="75" width="110" height="160" rx="10" fill="#fef7e0" stroke="#b06000" stroke-width="3"/>
+          <line x1="70" y1="115" x2="170" y2="115" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
+          <line x1="70" y1="150" x2="170" y2="150" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
+          <line x1="70" y1="185" x2="170" y2="185" stroke="#b06000" stroke-width="3" stroke-dasharray="5,3"/>
+
+          <!-- Pipes -->
+          <line x1="120" y1="50" x2="120" y2="75" stroke="#b06000" stroke-width="5"/>
+          <line x1="120" y1="235" x2="120" y2="260" stroke="#b06000" stroke-width="5"/>
+
+          <text x="120" y="136" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#202124">{lysis_mode.split('(')[0]}</text>
+          <text x="120" y="210" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle" fill="#b71c1c">HCDNA: {impurity_load:.1f}x</text>
         </svg>
         """
-    st.components.v1.html(svg_filter, height=240)
+    st.components.v1.html(svg_filter, height=300)
 
   # 4. CHROMATOGRAPHY SKID (Афінна та Аніонообмінна колонка)
   with eq4:
     st.markdown("##### 4. Хроматографія\n**(Affinity & AEX Column)**")
     svg_chrom = f"""
-        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#c5221f" stroke-width="2"/>
+        <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#c5221f" stroke-width="2.5"/>
+          <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#c5221f">AEX / Affinity Skid</text>
+
           <!-- Column Body -->
-          <rect x="70" y="60" width="60" height="135" rx="5" fill="#ffffff" stroke="#c5221f" stroke-width="3"/>
-          <!-- Packed Resin Bed -->
-          <rect x="73" y="85" width="54" height="95" fill="#fce8e6"/>
-          <!-- Resin particles dots -->
-          <circle cx="85" cy="100" r="3" fill="#c5221f" opacity="0.5"/>
-          <circle cx="105" cy="115" r="4" fill="#c5221f" opacity="0.5"/>
-          <circle cx="115" cy="135" r="3" fill="#c5221f" opacity="0.5"/>
-          <circle cx="90" cy="150" r="4" fill="#c5221f" opacity="0.5"/>
-          <!-- Adapter caps -->
-          <rect x="65" y="50" width="70" height="10" fill="#5f6368" rx="2"/>
-          <rect x="65" y="195" width="70" height="10" fill="#5f6368" rx="2"/>
-          <!-- Text -->
-          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#c5221f">AEX / Affinity Skid</text>
-          <text x="100" y="110" font-family="Arial" font-size="9" font-weight="bold" text-anchor="middle" fill="#202124">Вихід: {downstream_recovery*100:.0f}%</text>
-          <text x="100" y="130" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#137333">% Full: {full_pct:.1f}%</text>
+          <rect x="80" y="70" width="80" height="170" rx="6" fill="#ffffff" stroke="#c5221f" stroke-width="3"/>
+          <rect x="84" y="100" width="72" height="120" fill="#fce8e6"/>
+
+          <circle cx="100" cy="120" r="4" fill="#c5221f" opacity="0.5"/>
+          <circle cx="130" cy="140" r="5" fill="#c5221f" opacity="0.5"/>
+          <circle cx="140" cy="175" r="4" fill="#c5221f" opacity="0.5"/>
+          <circle cx="110" cy="195" r="5" fill="#c5221f" opacity="0.5"/>
+
+          <rect x="72" y="58" width="96" height="12" fill="#5f6368" rx="3"/>
+          <rect x="72" y="240" width="96" height="12" fill="#5f6368" rx="3"/>
+
+          <!-- Readable Text Box -->
+          <rect x="90" y="125" width="60" height="42" rx="4" fill="#ffffff" opacity="0.9"/>
+          <text x="120" y="142" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#202124">Вихід: {downstream_recovery*100:.0f}%</text>
+          <text x="120" y="158" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#137333">% Full: {full_pct:.1f}%</text>
         </svg>
         """
-    st.components.v1.html(svg_chrom, height=240)
+    st.components.v1.html(svg_chrom, height=300)
 
-  # 5. FILL/FINISH & QC (Ізолятор, Розлив у флакони, -80°C)
+  # 5. FILL/FINISH & QC (Ізолятор, Розлив, -80°C)
   with eq5:
     st.markdown("##### 5. Розлив & QC\n**(Isolator & -80°C Freezer)**")
     svg_fill = f"""
-        <svg width="200" height="230" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="180" height="210" rx="10" fill="#f8f9fa" stroke="#8e24aa" stroke-width="2"/>
-          <!-- Isolator Hood -->
-          <rect x="35" y="55" width="130" height="80" rx="6" fill="#f3e8fd" stroke="#8e24aa" stroke-width="2"/>
+        <svg width="240" height="290" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="230" height="280" rx="12" fill="#f8f9fa" stroke="#8e24aa" stroke-width="2.5"/>
+          <text x="120" y="32" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle" fill="#8e24aa">Class A Isolator</text>
+
+          <!-- Isolator Box -->
+          <rect x="35" y="55" width="170" height="105" rx="8" fill="#f3e8fd" stroke="#8e24aa" stroke-width="2"/>
+          <text x="120" y="75" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#202124">ddPCR / qPCR</text>
+          <text x="120" y="93" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#8e24aa">Score: {quality_score:.0f}/100</text>
+
           <!-- Glass Vials -->
-          <rect x="50" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
-          <rect x="75" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
-          <rect x="100" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
-          <rect x="125" y="100" width="14" height="25" rx="2" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
-          <!-- Vial Liquid -->
-          <rect x="52" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
-          <rect x="77" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
-          <rect x="102" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
-          <rect x="127" y="112" width="10" height="11" fill="#8e24aa" opacity="0.6"/>
-          <!-- -80C Storage Box -->
-          <rect x="45" y="150" width="110" height="50" rx="5" fill="#4a148c"/>
-          <text x="100" y="180" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">Сховище -80°C</text>
-          <!-- Text -->
-          <text x="100" y="32" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#8e24aa">Class A Isolator</text>
-          <text x="100" y="75" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#202124">ddPCR / qPCR</text>
-          <text x="100" y="90" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#8e24aa">Score: {quality_score:.0f}/100</text>
+          <rect x="55" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="88" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="121" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+          <rect x="154" y="110" width="18" height="32" rx="3" fill="#ffffff" stroke="#8e24aa" stroke-width="2"/>
+
+          <rect x="58" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
+          <rect x="91" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
+          <rect x="124" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
+          <rect x="157" y="124" width="12" height="16" fill="#8e24aa" opacity="0.6"/>
+
+          <!-- Freezer -->
+          <rect x="45" y="180" width="150" height="70" rx="8" fill="#4a148c"/>
+          <text x="120" y="220" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle" fill="#ffffff">Сховище -80°C</text>
         </svg>
         """
-    st.components.v1.html(svg_fill, height=240)
+    st.components.v1.html(svg_fill, height=300)
 
   st.markdown("---")
   st.subheader("⚖️ Порівняльна характеристика масштабів виробництва")
@@ -519,7 +527,7 @@ with tab3:
         ### 🎯 1. Оптимізація трансфекції та комплексу
         
         * **Щільність суспензії HEK293:** Вводьте комплекс при **1.5–2.5 × 10⁶ cells/mL** із життєздатністю >95%.
-        * **Дозування ДНК:** Концентрація загальної ДНК **1.0–1.5 мкг / 10⁶ клітин** дає оптимальний результат.
+        * **Дозування ДНК:** Концентрація загальної ДНК **1.0–1.5 мкг / 10⁶ клітин** дає оптимуми.
         * **Комплексоутворення DNA:PEI:** Співвідношення мас має бути **1:2 – 1:4 (w/w)**. Комплекс повинен формуватися строго **15–20 хвилин** перед додаванням. Понад 25 хвилин призводить до агломерації.
         * **Баланс плазмід:** Дотримуйтесь еквімолярного співвідношення `Transgene : Rep/Cap : Helper` **1:1:1**.
         """)
