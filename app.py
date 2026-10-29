@@ -7,9 +7,10 @@ st.set_page_config(
     page_title="Навчальний симулятор rAAV", page_icon="🧬", layout="wide"
 )
 
-st.title("🧬 Інтерактивний симулятор біопроцесу rAAV (HEK293)")
+st.title("🧬 Професійний симулятор біопроцесу rAAV (HEK293)")
 st.caption(
-    "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної трансфекції."
+    "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної"
+    " трансфекції."
 )
 
 # --- ТАБИ НАВІГАЦІЇ ---
@@ -108,8 +109,9 @@ scale_l = st.sidebar.select_slider(
 purification_mode = st.sidebar.selectbox(
     "Метод Downstream-очищення",
     options=[
-        "Ультрацентрифугування (Iodixanol/CsCl) [Вихід ~40%]",
-        "Хроматографія (Affinity + IEX) [Вихід ~65%, Purity >99%]",
+        "Без очищення (Crude Harvest / Сирий лізат) [Вихід 100%, Низька чистота]",
+        "Ультрацентрифугування (Iodixanol/CsCl) [Вихід ~40%, Чистота ~85%]",
+        "Хроматографія (Affinity + IEX) [Вихід ~65%, Чистота >99%]",
     ],
 )
 
@@ -189,20 +191,29 @@ impurity_load = (
     + 0.5 * max(0.0, harvest_hpt - 72) / 24.0
     + 0.3 * max(0.0, cell_density - 4.0)
 )
+
+# Розрахунок Downstream recovery та Штрафу за очищення
+if purification_mode.startswith("Без очищення"):
+  downstream_recovery = 1.00
+  purification_penalty = 35.0  # Величезне забруднення HCDNA/HCP
+elif purification_mode.startswith("Ультрацентрифугування"):
+  downstream_recovery = 0.40
+  purification_penalty = 12.0
+else:  # Хроматографія
+  downstream_recovery = 0.65
+  purification_penalty = 0.0
+
 quality_score = (
     0.50 * (full_pct / 35.0 * 100)
     + 0.30 * max(0.0, (1.0 - (impurity_load - 1.0) / 3.0) * 100)
     + 0.20 * min(100.0, (titer / 3.5e10) * 100)
 )
-quality_score = max(0.0, min(100.0, quality_score))
+quality_score = max(
+    0.0, min(100.0, quality_score - purification_penalty)
+)  # Враховуємо метод очищення
 
 harvest_volume_ml = scale_l * 1000.0 * 0.9
 crude_total_vg = titer * harvest_volume_ml
-downstream_recovery = (
-    0.40
-    if purification_mode.startswith("Ультрацентрифугування")
-    else 0.65
-)
 purified_total_vg = crude_total_vg * downstream_recovery
 
 # --- ТАБ 1: СИМУЛЯТОР ТА РОЗРАХУНКИ ---
@@ -210,12 +221,19 @@ with tab1:
   st.subheader("📊 Головні показники лоту rAAV")
   c1, c2, c3, c4 = st.columns(4)
   c1.metric("Титр (Crude Harvest)", f"{titer:.2e} vg/mL")
-  c2.metric("Чистий вихід (Purified Yield)", f"{purified_total_vg:.2e} vg")
+  c2.metric("Вихід продукту (Purified/Total Yield)", f"{purified_total_vg:.2e} vg")
   c3.metric("Частка повних капсидів", f"{full_pct:.1f} %")
   c4.metric("Індекс якості лоту", f"{quality_score:.0f} / 100")
 
   st.markdown("---")
   st.subheader("⚠️ Попередження та критичні компроміси")
+
+  if purification_mode.startswith("Без очищення"):
+    st.error(
+        "🚨 **Увага (Без очищення):** Сирий лізат містить величезну кількість"
+        " клітинного сміття, залишків ДНК (HCDNA) та токсичних білків (HCP)."
+        " Препарат непридатний для використання in vivo без хроматографії!"
+    )
 
   if abs(plasmid_sum - 1.0) > 0.02:
     st.error(f"❌ Сума часток плазмід має дорівнювати 1.00 (Зараз: {plasmid_sum:.2f})")
@@ -321,100 +339,4 @@ with tab2:
     st.markdown("### 📋 Фізико-хімічний стан біосистеми")
     st.write(f"**Об'єм реактора:** `{scale_l} L`")
     st.write(f"**Температурний режим:** `{target_temp}`")
-    st.write(f"**Комплекс DNA:PEI:** `{complex_time} хв` | **w/w:** `{pei_ratio}:1`")
-    st.write(f"**Очищення (Downstream):** `{purification_mode.split('[')[0]}`")
-
-    if scale_l >= 1000:
-      st.error(
-          "🔴 **Високе зсувне напруження (Shear Stress):** Клітини HEK293 зазнають механічного пошкодження."
-      )
-    else:
-      st.success(
-          "🟢 **Оптимальний гомеостаз:** Змішування та киснепостачання рівномірні по всьому об'єму."
-      )
-
-    st.markdown("---")
-    st.markdown("**Розподіл продукту (Intracellular vs Extracellular):**")
-    st.progress(intracellular_fraction)
-    st.caption(
-        f"Внутрішньоклітинний AAV: {intracellular_fraction*100:.0f}% | У супернатанті: {(1-intracellular_fraction)*100:.0f}%"
-    )
-
-# --- ТАБ 3: КАРТКИ-ШПОРИ ---
-with tab3:
-  st.subheader(
-      "📚 Протокольні картки-шпори біоінженерії (HEK293 Triple Transfection)"
-  )
-
-  col_card1, col_card2 = st.columns(2)
-
-  with col_card1:
-    st.info("""
-        ### 🎯 1. Оптимізація трансфекції та комплексу
-        
-        * **Щільність суспензії HEK293:** Вводьте комплекс при **1.5–2.5 × 10⁶ cells/mL** із життєздатністю >95%.
-        * **Дозування ДНК:** Концентрація загальної ДНК **1.0–1.5 мкг / 10⁶ клітин** дає оптимальний результат.
-        * **Комплексоутворення DNA:PEI:** Співвідношення мас має бути **1:2 – 1:4 (w/w)**. Комплекс повинен формуватися строго **15–20 хвилин** перед додаванням. Понад 25 хвилин призводить до агломерації.
-        * **Баланс плазмід:** Дотримуйтесь еквімолярного співвідношення `Transgene : Rep/Cap : Helper` **1:1:1**.
-        """)
-
-    st.success("""
-        ### ❄️ 2. Температурний режим та Збір (Harvest)
-        
-        * **Гіпотермічний шифт (33°C):** Зниження температури з 37°C до 32–34°C після трансфекції покращує згортання білків, підвищує частку повних капсидів та зменшує метаболічний стрес.
-        * **Час збору:** Оптимальне вікно — **48–72 hpt**. Збирайте біомасу до того, як життєздатність впаде нижче 70%.
-        * **Серотипний розподіл:** AAV2 та AAV5 залишаються в клітинах (потрібен лізис), а AAV8 та AAV9 значною мірою вивільняються у середовище.
-        """)
-
-  with col_card2:
-    st.warning("""
-        ### 🧪 3. Лізис та Очищення (Downstream)
-        
-        * **Протоколи лізису:** Цикли заморожування-розморожування підходять для Small-Scale. Для біореакторів використовують м'який детергентний лізис або механічне руйнування.
-        * **Очищення (Downstream):** 
-          * *Градієнтне центрифугування (CsCl/Iodixanol)* — для досліджень, вихід ~40–50%.
-          * *Афінна + Іонообмінна хроматографія (Affinity + IEX)* — для клінічного GMP-виробництва, чистота >99%, вихід ~65%.
-        """)
-
-    st.error("""
-        ### 🏭 4. Чек-лист успішного Scale-Up (2000 L)
-        
-        * **P/V & kLa:** Масштабуйте процес за рівною питомою потужністю перемішування ($P/V$) та коефіцієнтом масопереносу кисню ($k_L a$).
-        * **Inline-додавання комплексу:** У 2000 L застосовуйте автоматичну швидку подачу комплексу, щоб не вийти за межі 20 хвилин комплексоутворення.
-        """)
-
-# --- ТАБ 4: МАСШТАБУВАННЯ ---
-with tab4:
-  st.subheader("⚖️ Порівняльний аналіз масштабування: 200 L ➔ 2000 L")
-
-  case_data = {
-      "Показник": [
-          "Живі клітини при трансфекції",
-          "Час збору",
-          "Титр Crude Harvest (vg/mL)",
-          "Частка повних капсидів (% full)",
-          "Downstream-вихід (Purified)",
-          "Критичне лімітування",
-      ],
-      "Пілотний біореактор (200 L)": [
-          "2.0 x 10⁶ cells/mL",
-          f"{harvest_hpt} hpt",
-          f"{titer:.2e}",
-          f"{full_pct:.1f}%",
-          f"{purified_total_vg:.2e} vg",
-          "Швидке однорідне змішування",
-      ],
-      "Промисловий біореактор (2000 L)": [
-          "2.0 x 10⁶ cells/mL",
-          f"{harvest_hpt} hpt",
-          f"{titer * (0.78 / scale_penalty):.2e}",
-          f"{max(5.0, full_pct - 3.0):.1f}%",
-          f"{purified_total_vg * (0.78 / scale_penalty):.2e} vg",
-          "Тривалість додавання комплексу, Shear stress, kLa",
-      ],
-  }
-  st.dataframe(pd.DataFrame(case_data), use_container_width=True)
-
-  st.success(
-      "💡 **Ключове інженерне резюме:** Головний критерій успішного scale-up — збереження питомого виходу повних функціональних векторів на 1 літр середовища та збереження CQA (Critical Quality Attributes), а не максимальний титр будь-якою ціною."
-  )
+    st.write(f"**Комплекс DNA:PEI:** `{complex
