@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Навчальний симулятор rAAV", page_icon="🧬", layout="wide"
 )
 
-st.title("🧬 Професійний симулятор біопроцесу rAAV (HEK293)")
+st.title("🧬 Симулятор біопроцесу rAAV (HEK293)")
 st.caption(
     "Модель upstream- та downstream-виробництва вектора rAAV методом потрійної"
     " трансфекції."
